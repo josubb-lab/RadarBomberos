@@ -1,0 +1,119 @@
+---
+import Layout from './Layout.astro'
+
+interface Props { title: string }
+const { title } = Astro.props
+---
+
+<Layout title={`${title} · Radar Bomberos`}>
+
+  <nav class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
+      <a href="/" class="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Inicio
+      </a>
+      <span class="text-slate-700">/</span>
+      <span class="text-slate-500 text-sm">{title}</span>
+    </div>
+  </nav>
+
+  <main class="legal max-w-3xl mx-auto px-4 py-12">
+    <slot />
+  </main>
+
+  <footer class="border-t border-slate-800/60 mt-10">
+    <div class="max-w-3xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-600">
+      <p>© {new Date().getFullYear()} Radar Bomberos</p>
+      <nav class="flex gap-4">
+        <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>
+        <a href="/politica-privacidad" class="hover:text-slate-400 transition-colors">Privacidad</a>
+        <a href="/politica-cookies"    class="hover:text-slate-400 transition-colors">Cookies</a>
+      </nav>
+    </div>
+  </footer>
+
+</Layout>
+
+<style is:global>
+  .legal h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #f8fafc;
+    margin-bottom: 1.25rem;
+    line-height: 1.2;
+  }
+  .legal h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #1e293b;
+  }
+  .legal h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .legal p {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    line-height: 1.75;
+    margin-bottom: 1rem;
+  }
+  .legal ul, .legal ol {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    line-height: 1.75;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+  .legal ul { list-style-type: disc; }
+  .legal ol { list-style-type: decimal; }
+  .legal li { margin-bottom: 0.375rem; }
+  .legal li strong, .legal p strong { color: #cbd5e1; font-weight: 600; }
+  .legal a {
+    color: #f59e0b;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.15s;
+  }
+  .legal a:hover { color: #fbbf24; }
+  .legal table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin-bottom: 1.5rem;
+  }
+  .legal th {
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    border-bottom: 1px solid #334155;
+    padding: 0.5rem 0.75rem;
+  }
+  .legal td {
+    color: #94a3b8;
+    border-bottom: 1px solid #1e293b;
+    padding: 0.625rem 0.75rem;
+    vertical-align: top;
+  }
+  .legal kbd {
+    font-size: 0.75rem;
+    font-family: monospace;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    color: #94a3b8;
+  }
+</style>

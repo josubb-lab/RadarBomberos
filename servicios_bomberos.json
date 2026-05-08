@@ -1,0 +1,257 @@
+[
+  {
+    "nombre": "Consorcio de Extinción de Incendios de la Diputación de Jaén",
+    "tipo": "Consorcio",
+    "comunidad": "Andalucía"
+  },
+  {
+    "nombre": "Servicio de Extinción de Incendios de Almería",
+    "tipo": "Municipal",
+    "comunidad": "Andalucía"
+  },
+  {
+    "nombre": "Servicio de Extinción de Incendios y Salvamento de Córdoba",
+    "tipo": "Municipal",
+    "comunidad": "Andalucía"
+  },
+  {
+    "nombre": "Servicio de Extinción de Incendios y Salvamento de Granada",
+    "tipo": "Municipal",
+    "comunidad": "Andalucía"
+  },
+  {
+    "nombre": "Servicio de Extinción de Incendios y Salvamento de Málaga (SEIS)",
+    "tipo": "Municipal",
+    "comunidad": "Andalucía"
+  },
+  {
+    "nombre": "Servicio de Prevención, Extinción de Incendios y Salvamento de Sevilla (SPEIS Sevilla)",
+    "tipo": "Municipal",
+    "comunidad": "Andalucía"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Zaragoza",
+    "tipo": "Municipal",
+    "comunidad": "Aragón"
+  },
+  {
+    "nombre": "Servicio de Emergencias del Principado de Asturias (SEPA)",
+    "tipo": "Autonómico",
+    "comunidad": "Asturias"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Santa Cruz de Tenerife",
+    "tipo": "Municipal",
+    "comunidad": "Canarias"
+  },
+  {
+    "nombre": "Consorcio de Emergencias de Gran Canaria",
+    "tipo": "Consorcio",
+    "comunidad": "Canarias"
+  },
+  {
+    "nombre": "Servicio de Extinción de Incendios y Salvamento de Las Palmas de Gran Canaria",
+    "tipo": "Municipal",
+    "comunidad": "Canarias"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Santander",
+    "tipo": "Municipal",
+    "comunidad": "Cantabria"
+  },
+  {
+    "nombre": "Real Cuerpo de Bomberos Voluntarios de Santander",
+    "tipo": "Otros",
+    "comunidad": "Cantabria"
+  },
+  {
+    "nombre": "Bomberos de la Diputación de Valladolid",
+    "tipo": "Municipal",
+    "comunidad": "Castilla y León"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Ávila",
+    "tipo": "Municipal",
+    "comunidad": "Castilla y León"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Burgos",
+    "tipo": "Municipal",
+    "comunidad": "Castilla y León"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Palencia",
+    "tipo": "Municipal",
+    "comunidad": "Castilla y León"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Segovia",
+    "tipo": "Municipal",
+    "comunidad": "Castilla y León"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Valladolid",
+    "tipo": "Municipal",
+    "comunidad": "Castilla y León"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Zamora",
+    "tipo": "Municipal",
+    "comunidad": "Castilla y León"
+  },
+  {
+    "nombre": "Servicio de Extinción de Incendios y Salvamento de Salamanca",
+    "tipo": "Municipal",
+    "comunidad": "Castilla y León"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Ciudad Real",
+    "tipo": "Municipal",
+    "comunidad": "Castilla-La Mancha"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Cuenca",
+    "tipo": "Municipal",
+    "comunidad": "Castilla-La Mancha"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Guadalajara",
+    "tipo": "Municipal",
+    "comunidad": "Castilla-La Mancha"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Toledo",
+    "tipo": "Municipal",
+    "comunidad": "Castilla-La Mancha"
+  },
+  {
+    "nombre": "Servicio Extinción de Incendios de Albacete (SPEIS)",
+    "tipo": "Municipal",
+    "comunidad": "Castilla-La Mancha"
+  },
+  {
+    "nombre": "Bomberos de Barcelona",
+    "tipo": "Municipal",
+    "comunidad": "Cataluña"
+  },
+  {
+    "nombre": "Bomberos de la Generalidad de Cataluña (Bombers de la Generalitat)",
+    "tipo": "Autonómico",
+    "comunidad": "Cataluña"
+  },
+  {
+    "nombre": "Cuerpo de Bomberos de la Comunidad de Madrid",
+    "tipo": "Autonómico",
+    "comunidad": "Comunidad de Madrid"
+  },
+  {
+    "nombre": "Servicio de Prevención, Extinción de Incendios y Salvamento de Madrid (SPEIS Madrid)",
+    "tipo": "Municipal",
+    "comunidad": "Comunidad de Madrid"
+  },
+  {
+    "nombre": "Consorcio Provincial de Bomberos de Alicante",
+    "tipo": "Consorcio",
+    "comunidad": "Comunitat Valenciana"
+  },
+  {
+    "nombre": "Consorcio Provincial de Bomberos de Castellón",
+    "tipo": "Consorcio",
+    "comunidad": "Comunitat Valenciana"
+  },
+  {
+    "nombre": "Consorcio Provincial de Bomberos de Valencia",
+    "tipo": "Consorcio",
+    "comunidad": "Comunitat Valenciana"
+  },
+  {
+    "nombre": "Brigadas de Refuerzo de Incendios Forestales (BRIF)",
+    "tipo": "Autonómico",
+    "comunidad": "España (nacional)"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Badajoz",
+    "tipo": "Municipal",
+    "comunidad": "Extremadura"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Cáceres",
+    "tipo": "Municipal",
+    "comunidad": "Extremadura"
+  },
+  {
+    "nombre": "Bomberos de A Coruña",
+    "tipo": "Municipal",
+    "comunidad": "Galicia"
+  },
+  {
+    "nombre": "Bomberos de Lugo",
+    "tipo": "Municipal",
+    "comunidad": "Galicia"
+  },
+  {
+    "nombre": "Bomberos de Ourense",
+    "tipo": "Municipal",
+    "comunidad": "Galicia"
+  },
+  {
+    "nombre": "Bomberos de Pontevedra",
+    "tipo": "Municipal",
+    "comunidad": "Galicia"
+  },
+  {
+    "nombre": "Bomberos de Palma de Mallorca",
+    "tipo": "Municipal",
+    "comunidad": "Illes Balears"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Logroño",
+    "tipo": "Municipal",
+    "comunidad": "La Rioja"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Pamplona",
+    "tipo": "Municipal",
+    "comunidad": "Navarra"
+  },
+  {
+    "nombre": "Bomberos Foral de Navarra",
+    "tipo": "Autonómico",
+    "comunidad": "Navarra"
+  },
+  {
+    "nombre": "Servicio de Prevención y Extinción de Incendios de Navarra",
+    "tipo": "Autonómico",
+    "comunidad": "Navarra"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Bilbao",
+    "tipo": "Municipal",
+    "comunidad": "País Vasco"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Donostia-San Sebastián",
+    "tipo": "Municipal",
+    "comunidad": "País Vasco"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Vitoria-Gasteiz",
+    "tipo": "Municipal",
+    "comunidad": "País Vasco"
+  },
+  {
+    "nombre": "Bomberos del Ayuntamiento de Cartagena",
+    "tipo": "Municipal",
+    "comunidad": "Región de Murcia"
+  },
+  {
+    "nombre": "Consorcio de Extinción de Incendios y Salvamento de la Región de Murcia (CEIS Murcia)",
+    "tipo": "Consorcio",
+    "comunidad": "Región de Murcia"
+  },
+  {
+    "nombre": "Servicio Contra Incendios y Salvamento de Murcia (SEIS Murcia)",
+    "tipo": "Municipal",
+    "comunidad": "Región de Murcia"
+  }
+]

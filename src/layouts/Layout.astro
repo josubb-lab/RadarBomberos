@@ -1,0 +1,27 @@
+---
+import '../styles/global.css'
+
+interface Props {
+  title?: string
+  description?: string
+}
+
+const {
+  title = 'Radar Bomberos',
+  description = 'Transparencia y justicia para el opositor de bomberos en España.',
+} = Astro.props
+---
+
+<!doctype html>
+<html lang="es" class="bg-slate-950">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-amber-500/30">
+    <slot />
+  </body>
+</html>

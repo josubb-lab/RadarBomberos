@@ -1,0 +1,74 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro'
+---
+<LegalLayout title="Fuentes de datos">
+
+  <h1>Fuentes y metodología</h1>
+
+  <p>Radar Bomberos recopila automáticamente señales negativas de fuentes públicas oficiales y comunidades de opositores. Toda la información enlaza al documento original para que puedas verificarla de primera mano.</p>
+
+  <h2>Fuentes monitorizadas</h2>
+
+  <div class="space-y-4 not-prose">
+    {[
+      {
+        icon: '📰',
+        nombre: 'Google News',
+        tipo: 'Prensa regional y nacional',
+        frecuencia: 'Diaria',
+        descripcion: 'Rastreamos Google News con búsquedas específicas sobre irregularidades, impugnaciones, fraudes y denuncias en oposiciones a bombero. Solo se indexan noticias que contienen señales negativas explícitas — se descartan noticias de sucesos, incendios o política general.',
+      },
+      {
+        icon: '📋',
+        nombre: 'BOE — Boletín Oficial del Estado',
+        tipo: 'Boletines oficiales',
+        frecuencia: 'Semanal',
+        descripcion: 'Consultamos el BOE buscando resoluciones de impugnación, anulación, rectificación o suspensión de convocatorias relacionadas con bomberos. Es la fuente de mayor fiabilidad para impugnaciones formalizadas ante la Administración.',
+      },
+      {
+        icon: '⚖️',
+        nombre: 'CENDOJ',
+        tipo: 'Sentencias judiciales',
+        frecuencia: 'Semanal',
+        descripcion: 'Buscamos en el Centro de Documentación Judicial sentencias relacionadas con procesos selectivos de bombero: nulidades, discriminación, recursos contencioso-administrativos estimados. Las sentencias son la señal de mayor peso en nuestro sistema.',
+      },
+      {
+        icon: '💬',
+        nombre: 'Reddit r/oposiciones',
+        tipo: 'Comunidad de opositores',
+        frecuencia: 'Diaria',
+        descripcion: 'Monitorizamos el subreddit de oposiciones en busca de hilos con quejas, denuncias o alertas sobre irregularidades en oposiciones a bombero con un mínimo de actividad (respuestas).',
+      },
+    ].map(f => (
+      <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
+        <div class="flex items-start gap-3 mb-3">
+          <span class="text-2xl mt-0.5">{f.icon}</span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <p class="font-semibold text-slate-100 text-sm">{f.nombre}</p>
+              <span class="text-[11px] text-slate-600 bg-slate-800 px-2 py-0.5 rounded-full">{f.frecuencia}</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">{f.tipo}</p>
+          </div>
+        </div>
+        <p class="text-sm text-slate-400 leading-relaxed">{f.descripcion}</p>
+      </div>
+    ))}
+  </div>
+
+  <h2>¿Cómo se filtra la información?</h2>
+  <p>No se indexa cualquier noticia sobre bomberos. El sistema aplica un filtro doble:</p>
+  <ol>
+    <li>El contenido debe referirse explícitamente a un <strong>proceso selectivo</strong> (oposición, convocatoria, bases, tribunal...).</li>
+    <li>Debe contener al menos una <strong>señal negativa</strong> (impugnación, fraude, nulidad, irregularidad, discriminación, enchufe...).</li>
+  </ol>
+
+  <h2>Limitaciones</h2>
+  <ul>
+    <li>La base de datos está en construcción. El histórico crece con cada ejecución del sistema.</li>
+    <li>Los boletines autonómicos (BOJA, BOCM, DOGC…) no están cubiertos aún — el BOE es la fuente principal.</li>
+    <li>CENDOJ bloquea el scraping automático con frecuencia. Se trabaja en una solución alternativa.</li>
+    <li>Radar Bomberos no verifica ni contrasta el contenido de las fuentes. Enlazamos siempre al documento original.</li>
+  </ul>
+
+</LegalLayout>

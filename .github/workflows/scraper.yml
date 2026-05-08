@@ -1,0 +1,92 @@
+name: Radar Scraper
+
+on:
+  schedule:
+    - cron: '0 5 * * *'    # cada día a las 5am UTC → noticias + foros
+    - cron: '0 5 * * 1'    # cada lunes a las 5am UTC → boletines
+  workflow_dispatch:         # disparo manual desde GitHub
+    inputs:
+      fuente:
+        description: 'Fuente a ejecutar (noticias | boletines | foros | todas)'
+        required: false
+        default: 'todas'
+
+jobs:
+  noticias:
+    name: Google News
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+      - name: Scraper — noticias
+        if: >
+          github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' &&
+           (github.event.inputs.fuente == 'noticias' || github.event.inputs.fuente == 'todas'))
+        run: node radar-engine/index.js --fuente=noticias
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_KEY: ${{ secrets.PUBLIC_SUPABASE_KEY }}
+
+  foros:
+    name: Reddit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+      - name: Scraper — foros
+        if: >
+          github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' &&
+           (github.event.inputs.fuente == 'foros' || github.event.inputs.fuente == 'todas'))
+        run: node radar-engine/index.js --fuente=foros
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_KEY: ${{ secrets.PUBLIC_SUPABASE_KEY }}
+
+  boletines:
+    name: BOE
+    runs-on: ubuntu-latest
+    # Solo se ejecuta los lunes o en disparo manual
+    if: >
+      (github.event_name == 'schedule' && startsWith(github.event.schedule, '0 5 * * 1')) ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.event.inputs.fuente == 'boletines' || github.event.inputs.fuente == 'todas'))
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+      - name: Scraper — boletines
+        run: node radar-engine/index.js --fuente=boletines
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_KEY: ${{ secrets.PUBLIC_SUPABASE_KEY }}

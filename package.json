@@ -1,0 +1,24 @@
+{
+  "name": "web_radar",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "@tailwindcss/vite": "^4.2.4",
+    "astro": "^5.0.0",
+    "axios": "^1.16.0",
+    "cheerio": "^1.2.0",
+    "puppeteer": "^24.43.0",
+    "rss-parser": "^3.13.0",
+    "tailwindcss": "^4.2.4"
+  }
+}
