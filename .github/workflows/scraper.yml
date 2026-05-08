@@ -31,3 +31,7 @@ jobs:
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_KEY: ${{ secrets.PUBLIC_SUPABASE_KEY }}
+
+      - name: Rebuild Vercel
+        if: success()
+        run: curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
