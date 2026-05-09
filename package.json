@@ -12,6 +12,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.7.2",
     "@supabase/supabase-js": "^2.45.0",
     "@tailwindcss/vite": "^4.2.4",
     "astro": "^5.0.0",
