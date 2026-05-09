@@ -26,26 +26,35 @@ jobs:
           - policia-nacional
           - docentes
           - correos
-    # En schedule corren todos. En dispatch solo el nicho indicado (o todos si vacío).
-    if: >-
-      github.event_name == 'schedule' ||
-      github.event.inputs.nicho == '' ||
-      github.event.inputs.nicho == matrix.nicho
 
     steps:
+      - name: Comprobar filtro de nicho
+        id: filter
+        run: |
+          INPUT="${{ github.event.inputs.nicho }}"
+          if [ -z "$INPUT" ] || [ "$INPUT" = "${{ matrix.nicho }}" ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          else
+            echo "run=false" >> $GITHUB_OUTPUT
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.filter.outputs.run == 'true'
 
       - uses: actions/setup-node@v4
+        if: steps.filter.outputs.run == 'true'
         with:
           node-version: '22'
           cache: 'npm'
 
       - name: Instalar dependencias
+        if: steps.filter.outputs.run == 'true'
         run: npm ci
         env:
           PUPPETEER_SKIP_DOWNLOAD: 'true'
 
       - name: Ejecutar scraper — ${{ matrix.nicho }}
+        if: steps.filter.outputs.run == 'true'
         run: |
           ARGS="--nicho=${{ matrix.nicho }}"
           [ -n "${{ github.event.inputs.fuente }}" ] && ARGS="$ARGS --fuente=${{ github.event.inputs.fuente }}"
@@ -55,7 +64,7 @@ jobs:
           PUBLIC_SUPABASE_KEY: ${{ secrets.PUBLIC_SUPABASE_KEY }}
 
       - name: Rebuild Vercel — ${{ matrix.nicho }}
-        if: success()
+        if: steps.filter.outputs.run == 'true' && success()
         continue-on-error: true
         run: |
           case "${{ matrix.nicho }}" in
