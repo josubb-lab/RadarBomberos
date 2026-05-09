@@ -22,8 +22,8 @@ export default {
   queryTemplateCiudad: (c) =>
     `correos ${c} oposición (impugnación OR fraude OR irregularidad OR denuncia OR anulación)`,
   nichoKeywords: [
-    'sociedad estatal correos', 'OPE correos', 'ope correos', 'correos y telegrafos',
-    'correos y telégrafos', 'oposicion correos', 'oposiciones correos',
+    'correos', 'sociedad estatal correos', 'OPE correos', 'ope correos',
+    'correos y telegrafos', 'correos y telégrafos',
   ],
   extraStopWords: [],
 

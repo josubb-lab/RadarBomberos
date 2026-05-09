@@ -23,7 +23,7 @@ export default {
     `policía nacional ${c} oposición (impugnación OR fraude OR irregularidad OR denuncia OR anulación)`,
   nichoKeywords: [
     'policía nacional', 'policia nacional', 'CNP', 'cuerpo nacional de policía',
-    'cuerpo nacional de policia', 'escala básica policía', 'escala basica policia',
+    'cuerpo nacional de policia', 'escala básica', 'escala basica',
   ],
   extraStopWords: [],
 

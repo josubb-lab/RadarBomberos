@@ -23,9 +23,8 @@ export default {
   queryTemplateCiudad: (c) =>
     `docentes ${c} oposición (impugnación OR fraude OR irregularidad OR denuncia OR anulación)`,
   nichoKeywords: [
-    'docente', 'docentes', 'maestro', 'maestros', 'profesor de secundaria', 'profesores de secundaria',
-    'cuerpo de maestros', 'interino docente', 'interinos docentes', 'bolsa de interinos',
-    'oposicion docente', 'oposiciones docentes', 'oposicion maestro', 'oposiciones maestros',
+    'docente', 'docentes', 'maestro', 'maestros', 'profesor', 'profesores',
+    'cuerpo de maestros', 'interino', 'interinos', 'bolsa de interinos',
   ],
   extraStopWords: [],
 
