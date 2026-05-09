@@ -79,9 +79,7 @@ const jsonLd = {
         {nicho.tagline}
       </p>
       <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-50 leading-tight mb-4">
-        {nicho.heroTitulo.split('\n').map((line, i) => (
-          i === 0 ? <>{line}<br class="hidden sm:block" /></> : line
-        ))}
+        {nicho.heroTitulo}
       </h1>
       <p class="text-slate-400 text-base sm:text-lg max-w-xl mx-auto mb-10">
         {nicho.heroDesc}
