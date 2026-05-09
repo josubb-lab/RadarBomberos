@@ -1,6 +1,6 @@
 /**
  * fuente-noticias.js
- * Google News RSS — queries generales + por comunidad autónoma y ciudad.
+ * Google News RSS — parametrizado por nicho.
  */
 
 import Parser from "rss-parser";
@@ -28,38 +28,7 @@ const CIUDADES = [
   'Ceuta', 'Melilla',
 ];
 
-const QUERIES_GENERALES = [
-  'oposición bomberos (impugnación OR fraude OR irregularidad OR nulidad OR denuncia)',
-  'oposiciones bombero (discriminación OR nepotismo OR enchufe OR amiguismo)',
-  'SPEIS oposición (anulación OR irregularidad OR escándalo OR recurso)',
-  'bomberos convocatoria (nulidad OR suspensión OR impugna OR corrupción)',
-  'opositor bombero (trampa OR tongo OR favoritismo OR injusticia)',
-  'bombero proceso selectivo (ilegal OR anulado OR suspendido OR impugnado)',
-  'bomberos tribunal selección (irregular OR denunciado OR recurrido OR cuestionado)',
-  'oposición bombero discriminación pruebas físicas sexo',
-  'bomberos cupo reserva convocatoria irregularidad',
-  'convocatoria bombero bases impugnadas recurso contencioso',
-  'SPEIS plaza convocatoria escándalo fraude enchufe',
-  'bombero oposición nepotismo enchufismo contactos selectivo',
-  'sentencia bomberos proceso selectivo nulidad impugnación',
-];
-
-const QUERIES_COMUNIDADES = COMUNIDADES.flatMap(c => [
-  `bomberos ${c} (impugnación OR fraude OR irregularidad OR nulidad OR denuncia)`,
-  `oposición bombero ${c} (recurso OR escándalo OR anulación OR enchufe OR irregular)`,
-]);
-
-const QUERIES_CIUDADES = CIUDADES.map(c =>
-  `bomberos ${c} oposición (impugnación OR fraude OR irregularidad OR denuncia OR anulación)`
-);
-
-const QUERIES = [
-  ...QUERIES_GENERALES,
-  ...QUERIES_COMUNIDADES,
-  ...QUERIES_CIUDADES,
-];
-
-const STOP_WORDS = [
+const BASE_STOP_WORDS = [
   "atropello", "asesinato", "homicidio", "dana", "inundacion",
   "investidura", "gobierno de", "partido político", "congreso de los diputados",
   "accidente de tráfico", "incendio en una vivienda", "incendio en un piso",
@@ -67,14 +36,8 @@ const STOP_WORDS = [
   "terremoto", "erupción", "tornado", "temporal de",
   // Latinoamérica
   "medellín", "itagüí", "bogotá", "colombia", "méxico", "argentina",
-  "chile", "peru", "venezuela", "ecuador", "costa rica", "chile",
+  "chile", "peru", "venezuela", "ecuador", "costa rica",
   "area metropolitana de medellin",
-];
-
-const TOPIC_KEYWORDS = [
-  "oposicion", "oposiciones", "convocatoria", "plaza de bombero", "plazas de bombero",
-  "proceso selectivo", "bases de la convocatoria", "pruebas selectivas",
-  "bombero", "bomberos", "servicio de extincion", "speis", "parque de bomberos",
 ];
 
 const NEGATIVE_KEYWORDS = [
@@ -90,10 +53,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function normalizar(s) {
   return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
-
-const tieneStopWord     = (t) => STOP_WORDS.some((sw) => normalizar(t).includes(normalizar(sw)));
-const esSobreOposicion  = (t) => TOPIC_KEYWORDS.some((kw) => normalizar(t).includes(normalizar(kw)));
-const tieneSeñalNegativa = (t) => NEGATIVE_KEYWORDS.some((kw) => normalizar(t).includes(normalizar(kw)));
 
 function esReciente(fechaStr) {
   if (!fechaStr) return true;
@@ -126,7 +85,19 @@ async function fetchGoogleNews(query) {
   }
 }
 
-export async function analizarNoticias() {
+export async function analizarNoticias(config) {
+  const stopWords = [...BASE_STOP_WORDS, ...(config.extraStopWords ?? [])];
+
+  const tieneStopWord      = (t) => stopWords.some((sw) => normalizar(t).includes(normalizar(sw)));
+  const esSobreNicho       = (t) => config.topicKeywords.some((kw) => normalizar(t).includes(normalizar(kw)));
+  const tieneSeñalNegativa = (t) => NEGATIVE_KEYWORDS.some((kw) => normalizar(t).includes(normalizar(kw)));
+
+  const QUERIES = [
+    ...config.queriesGenerales,
+    ...COMUNIDADES.flatMap((c) => config.queryTemplateComunidad(c)),
+    ...CIUDADES.map((c) => config.queryTemplateCiudad(c)),
+  ];
+
   const hallazgos = [];
   let queried = 0;
 
@@ -145,11 +116,11 @@ export async function analizarNoticias() {
       const fecha   = item.pubDate ?? item.isoDate ?? "";
       const url     = item.link ?? "";
 
-      if (!url)                          continue;
-      if (!esReciente(fecha))            continue;
-      if (tieneStopWord(texto))          continue;
-      if (!esSobreOposicion(texto))      continue;
-      if (!tieneSeñalNegativa(texto))    continue;
+      if (!url)                       continue;
+      if (!esReciente(fecha))         continue;
+      if (tieneStopWord(texto))       continue;
+      if (!esSobreNicho(texto))       continue;
+      if (!tieneSeñalNegativa(texto)) continue;
 
       hallazgos.push({
         fuente:      "Google News",

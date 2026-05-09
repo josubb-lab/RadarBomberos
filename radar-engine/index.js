@@ -3,11 +3,11 @@
  * Orquestador — lanza las 4 fuentes y guarda hallazgos en Supabase.
  *
  * Uso:
- *   node --env-file=.env radar-engine/index.js              (todas las fuentes)
- *   node --env-file=.env radar-engine/index.js --fuente=noticias
- *   node --env-file=.env radar-engine/index.js --fuente=boletines
- *   node --env-file=.env radar-engine/index.js --fuente=sentencias
- *   node --env-file=.env radar-engine/index.js --fuente=foros
+ *   node --env-file=.env radar-engine/index.js --nicho=bomberos
+ *   node --env-file=.env radar-engine/index.js --nicho=policia-local --fuente=noticias
+ *
+ * Nichos disponibles: bomberos | policia-local | policia-nacional | docentes | correos
+ * Fuentes disponibles: noticias | boletines | sentencias | foros  (sin argumento = todas)
  */
 
 import { createClient }       from "@supabase/supabase-js";
@@ -19,8 +19,10 @@ import { analizarNoticias }   from "./fuente-noticias.js";
 const SUPABASE_URL = process.env.PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.PUBLIC_SUPABASE_KEY;
 
-// Argumento opcional --fuente=<nombre>
+const nichoArg  = process.argv.find((a) => a.startsWith("--nicho="))?.split("=")[1]  ?? "bomberos";
 const fuenteArg = process.argv.find((a) => a.startsWith("--fuente="))?.split("=")[1];
+
+const NICHOS_DISPONIBLES = ["bomberos", "policia-local", "policia-nacional", "docentes", "correos"];
 
 function normalizarFecha(fechaStr) {
   if (!fechaStr) return null;
@@ -31,28 +33,38 @@ function normalizarFecha(fechaStr) {
 
 async function main() {
   console.log("══════════════════════════════════════════════════════════");
-  console.log("  RADAR ENGINE – Señales negativas en oposiciones bombero");
-  console.log(`  ${new Date().toLocaleString("es-ES")}${fuenteArg ? `  [fuente: ${fuenteArg}]` : ""}`);
+  console.log(`  RADAR ENGINE — nicho: ${nichoArg}${fuenteArg ? `  fuente: ${fuenteArg}` : ""}`);
+  console.log(`  ${new Date().toLocaleString("es-ES")}`);
   console.log("══════════════════════════════════════════════════════════\n");
+
+  if (!NICHOS_DISPONIBLES.includes(nichoArg)) {
+    console.error(`❌ Nicho desconocido: "${nichoArg}". Disponibles: ${NICHOS_DISPONIBLES.join(", ")}`);
+    process.exit(1);
+  }
 
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.error("❌ Faltan PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_KEY en .env");
     process.exit(1);
   }
 
+  // Cargar config del nicho dinámicamente
+  const { default: nichoConfig } = await import(`./nichos/${nichoArg}.js`);
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // ── Obtener URLs ya guardadas para deduplicar ─────────────────────────────
-  const { data: existentes } = await supabase.from("hallazgos").select("url");
+  // Obtener URLs ya guardadas para este nicho (deduplicar)
+  const { data: existentes } = await supabase
+    .from("hallazgos")
+    .select("url")
+    .eq("nicho", nichoArg);
   const urlsExistentes = new Set((existentes ?? []).map((r) => r.url));
-  console.log(`📋 ${urlsExistentes.size} hallazgos ya en BD.\n`);
+  console.log(`📋 ${urlsExistentes.size} hallazgos ya en BD para "${nichoArg}".\n`);
 
-  // ── Lanzar fuentes ────────────────────────────────────────────────────────
   const fuentes = {
-    noticias:   analizarNoticias,
-    boletines:  analizarBoletines,
-    sentencias: analizarSentencias,
-    foros:      analizarForos,
+    noticias:   () => analizarNoticias(nichoConfig),
+    boletines:  () => analizarBoletines(nichoConfig),
+    sentencias: () => analizarSentencias(nichoConfig),
+    foros:      () => analizarForos(nichoConfig),
   };
 
   const fuentesAEjecutar = fuenteArg
@@ -78,8 +90,7 @@ async function main() {
       continue;
     }
 
-    // Filtrar los ya existentes en BD
-    const nuevos = hallazgos.filter((h) => h.url && !urlsExistentes.has(h.url));
+    const nuevos  = hallazgos.filter((h) => h.url && !urlsExistentes.has(h.url));
     const elapsed = ((Date.now() - inicio) / 1000).toFixed(1);
 
     console.log(`   ✓ ${hallazgos.length} encontrados | ${nuevos.length} nuevos | ${elapsed}s`);
@@ -91,6 +102,7 @@ async function main() {
       }
 
       const rows = nuevos.map((h) => ({
+        nicho:       nichoArg,
         fuente:      h.fuente,
         titulo:      h.titulo      ?? "(sin título)",
         descripcion: h.descripcion ?? null,
@@ -110,7 +122,7 @@ async function main() {
   }
 
   console.log("\n══════════════════════════════════════════════════════════");
-  console.log(`  RESUMEN: ${totalNuevos} hallazgos nuevos guardados en BD`);
+  console.log(`  RESUMEN [${nichoArg}]: ${totalNuevos} hallazgos nuevos guardados`);
   console.log("══════════════════════════════════════════════════════════\n");
 }
 

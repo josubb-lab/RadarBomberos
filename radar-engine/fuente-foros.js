@@ -1,37 +1,12 @@
 /**
  * fuente-foros.js
- * Reddit — quejas sobre oposiciones a bombero (subreddits múltiples).
+ * Reddit — parametrizado por nicho.
  */
 
 import axios from "axios";
 
 const PUNTOS_FORO = 2;
 const MIN_REPLIES = 1;
-
-const SUBREDDITS = ["oposiciones", "spain", "bomberos"];
-
-const QUERIES_POR_SUB = {
-  oposiciones: [
-    "bomberos irregularidad oposicion",
-    "bomberos impugnacion fraude",
-    "oposicion bombero trampa enchufe",
-    "bombero proceso selectivo denunci",
-    "bomberos discriminacion oposiciones",
-    "SPEIS oposicion irregularidad",
-    "bombero nepotismo enchufismo selectivo",
-    "oposicion bombero nulidad recurso",
-  ],
-  spain: [
-    "oposicion bomberos fraude",
-    "bomberos impugnacion oposicion",
-    "bombero irregularidad selectivo",
-  ],
-  bomberos: [
-    "oposicion irregularidad fraude",
-    "impugnacion proceso selectivo",
-    "enchufe nepotismo oposicion",
-  ],
-};
 
 const KEYWORDS_QUEJA = [
   "trampa", "fraude", "amiguismo", "enchufe", "irregularidad",
@@ -41,12 +16,7 @@ const KEYWORDS_QUEJA = [
   "enchufismo", "nepotismo", "discriminaci", "ilegal",
 ];
 
-const KEYWORDS_BOMBERO = [
-  "bombero", "bomberos", "speis", "extincion", "extinción",
-];
-
-const esQueja    = (t) => KEYWORDS_QUEJA.some((kw) => t.toLowerCase().includes(kw));
-const esBomberos = (t) => KEYWORDS_BOMBERO.some((kw) => t.toLowerCase().includes(kw));
+const esQueja = (t) => KEYWORDS_QUEJA.some((kw) => t.toLowerCase().includes(kw));
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -66,11 +36,10 @@ async function buscarReddit(subreddit, query) {
     for (const { data: post } of posts) {
       const titulo = post.title    ?? "";
       const body   = post.selftext ?? "";
-      const texto  = `${titulo} ${body}`;
 
-      if (esQueja(texto) && esBomberos(texto) && (post.num_comments ?? 0) >= MIN_REPLIES) {
+      if (esQueja(`${titulo} ${body}`) && (post.num_comments ?? 0) >= MIN_REPLIES) {
         hallazgos.push({
-          fuente:      "Reddit r/oposiciones",
+          fuente:      `Reddit r/${subreddit}`,
           tipo:        "queja_foro",
           titulo,
           descripcion: body.slice(0, 300) || null,
@@ -88,15 +57,17 @@ async function buscarReddit(subreddit, query) {
   }
 }
 
-export async function analizarForos() {
+export async function analizarForos(config) {
+  const esSobreNicho = (t) => config.keywordsTema.some((kw) => t.toLowerCase().includes(kw));
   const allHallazgos = [];
 
-  for (const [sub, queries] of Object.entries(QUERIES_POR_SUB)) {
+  for (const [sub, queries] of Object.entries(config.subreddits)) {
     for (const query of queries) {
       const hallazgos = await buscarReddit(sub, query);
-      allHallazgos.push(...hallazgos);
-      if (hallazgos.length > 0) {
-        console.log(`[Foros] r/${sub} «${query}» → ${hallazgos.length} posts`);
+      const filtrados = hallazgos.filter((h) => esSobreNicho(`${h.titulo} ${h.descripcion ?? ""}`));
+      allHallazgos.push(...filtrados);
+      if (filtrados.length > 0) {
+        console.log(`[Foros] r/${sub} «${query}» → ${filtrados.length} posts`);
       }
       await sleep(1_200);
     }

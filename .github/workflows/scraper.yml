@@ -5,14 +5,33 @@ on:
     - cron: '0 5 * * *'
   workflow_dispatch:
     inputs:
-      fuente:
-        description: 'noticias | boletines | foros'
+      nicho:
+        description: 'bomberos | policia-local | policia-nacional | docentes | correos  (vacío = todos)'
         required: false
-        default: 'noticias'
+        default: ''
+      fuente:
+        description: 'noticias | boletines | sentencias | foros  (vacío = todas)'
+        required: false
+        default: ''
 
 jobs:
   scraper:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        nicho:
+          - bomberos
+          - policia-local
+          - policia-nacional
+          - docentes
+          - correos
+    # En schedule corren todos. En dispatch solo el nicho indicado (o todos si vacío).
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event.inputs.nicho == '' ||
+      github.event.inputs.nicho == matrix.nicho
+
     steps:
       - uses: actions/checkout@v4
 
@@ -26,12 +45,24 @@ jobs:
         env:
           PUPPETEER_SKIP_DOWNLOAD: 'true'
 
-      - name: Ejecutar scraper
-        run: node radar-engine/index.js --fuente=${{ github.event.inputs.fuente || 'noticias' }}
+      - name: Ejecutar scraper — ${{ matrix.nicho }}
+        run: |
+          ARGS="--nicho=${{ matrix.nicho }}"
+          [ -n "${{ github.event.inputs.fuente }}" ] && ARGS="$ARGS --fuente=${{ github.event.inputs.fuente }}"
+          node radar-engine/index.js $ARGS
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_KEY: ${{ secrets.PUBLIC_SUPABASE_KEY }}
 
-      - name: Rebuild Vercel
+      - name: Rebuild Vercel — ${{ matrix.nicho }}
         if: success()
-        run: curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
+        continue-on-error: true
+        run: |
+          case "${{ matrix.nicho }}" in
+            bomberos)         HOOK="${{ secrets.VERCEL_HOOK_BOMBEROS }}"         ;;
+            policia-local)    HOOK="${{ secrets.VERCEL_HOOK_POLICIA_LOCAL }}"    ;;
+            policia-nacional) HOOK="${{ secrets.VERCEL_HOOK_POLICIA_NACIONAL }}" ;;
+            docentes)         HOOK="${{ secrets.VERCEL_HOOK_DOCENTES }}"         ;;
+            correos)          HOOK="${{ secrets.VERCEL_HOOK_CORREOS }}"          ;;
+          esac
+          [ -n "$HOOK" ] && curl -X POST "$HOOK"

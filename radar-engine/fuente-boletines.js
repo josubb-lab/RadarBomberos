@@ -1,42 +1,22 @@
 /**
  * fuente-boletines.js
- * BOE — búsqueda de convocatorias de bomberos con señales negativas.
+ * BOE — parametrizado por nicho.
  */
 
 import axios    from "axios";
 import * as cheerio from "cheerio";
 
-const BOE_URL    = "https://www.boe.es/buscar/boe.php";
-const DELAY_MS   = 2_000;
-const PUNTOS     = 30;
-
-// Búsqueda en títulos — amplia para capturar cualquier doc de bomberos
-const TERMINOS = [
-  'bomberos proceso selectivo',
-  'SPEIS proceso selectivo',
-  'bomberos convocatoria oposicion',
-  'extincion incendios proceso selectivo',
-  'bomberos anulacion',
-  'bomberos impugnacion',
-  'bomberos nulidad convocatoria',
-  'bomberos recurso selectivo',
-  'bombero bases pruebas seleccion',
-  'bombero suspension convocatoria',
-];
+const BOE_URL  = "https://www.boe.es/buscar/boe.php";
+const DELAY_MS = 2_000;
+const PUNTOS   = 30;
 
 const KEYWORDS_NEGATIVAS = [
   "impugnaci", "anulaci", "nulidad", "suspensi", "irregularidad",
   "rectificaci", "denegad",
 ];
 
-const KEYWORDS_BOMBEROS = [
-  "bomberos", "extinción de incendios", "extincion de incendios",
-  "speis", "bombero", "salvamento",
-];
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sleep      = (ms) => new Promise((r) => setTimeout(r, ms));
 const esNegativo = (t) => KEYWORDS_NEGATIVAS.some((kw) => t.toLowerCase().includes(kw));
-const esBomberos = (t) => KEYWORDS_BOMBEROS.some((kw) => t.toLowerCase().includes(kw));
 
 function buildParams(termino) {
   return new URLSearchParams({
@@ -112,15 +92,16 @@ async function consultarBOE(termino) {
   }
 }
 
-export async function analizarBoletines() {
-  const hallazgos = [];
+export async function analizarBoletines(config) {
+  const esSobreNicho = (t) => config.keywordsNicho.some((kw) => t.toLowerCase().includes(kw));
+  const hallazgos    = [];
 
-  for (const termino of TERMINOS) {
+  for (const termino of config.terminosBOE) {
     const resultados = await consultarBOE(termino);
 
     for (const r of resultados) {
       const texto = `${r.titulo} ${r.resumen}`;
-      if (esBomberos(texto) && esNegativo(texto)) {
+      if (esSobreNicho(texto) && esNegativo(texto)) {
         hallazgos.push({
           fuente:      "BOE",
           tipo:        "boletin_negativo",

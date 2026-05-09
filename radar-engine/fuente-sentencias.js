@@ -1,7 +1,6 @@
 /**
  * fuente-sentencias.js
- * CENDOJ + DuckDuckGo — sentencias judiciales sobre oposiciones a bombero.
- * DuckDuckGo solo se activa si CENDOJ bloquea.
+ * CENDOJ + DuckDuckGo — parametrizado por nicho.
  */
 
 import axios    from "axios";
@@ -26,19 +25,7 @@ const KEYWORDS_NEG = [
   "recurso contencioso", "recurso estimado",
 ];
 
-const QUERIES_CENDOJ = [
-  "bomberos oposición anulación nulidad proceso selectivo",
-  "SPEIS oposición discriminación recurso contencioso",
-  "bomberos convocatoria impugnación irregularidad",
-];
-
-const QUERIES_DDG = [
-  'site:poderjudicial.es bomberos oposición nulidad anulación',
-  'site:poderjudicial.es SPEIS proceso selectivo impugnación',
-  'site:poderjudicial.es bomberos discriminación oposición',
-];
-
-const sleep     = (ms) => new Promise((r) => setTimeout(r, ms));
+const sleep      = (ms) => new Promise((r) => setTimeout(r, ms));
 const esNegativo = (t) => KEYWORDS_NEG.some((kw) => t.toLowerCase().includes(kw));
 
 let cendojBloqueado = false;
@@ -119,12 +106,11 @@ async function buscarEnDDG(query) {
   return resultados;
 }
 
-export async function analizarSentencias() {
+export async function analizarSentencias(config) {
   const hallazgos = [];
 
-  // Intento 1: CENDOJ directo
   if (!cendojBloqueado) {
-    for (const query of QUERIES_CENDOJ) {
+    for (const query of config.queriesCENDOJ) {
       const resultados = await consultarCENDOJ(query);
       for (const r of resultados) {
         if (esNegativo(`${r.titulo} ${r.resumen}`)) {
@@ -144,9 +130,8 @@ export async function analizarSentencias() {
     }
   }
 
-  // Intento 2: DuckDuckGo (solo si CENDOJ bloqueado)
   if (cendojBloqueado) {
-    for (const query of QUERIES_DDG) {
+    for (const query of config.queriesDDG) {
       const resultados = await buscarEnDDG(query);
       for (const r of resultados) {
         if (r.url.includes("poderjudicial.es") && esNegativo(`${r.titulo} ${r.resumen}`)) {

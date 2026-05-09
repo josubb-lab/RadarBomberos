@@ -1,0 +1,136 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import { createClient } from '@supabase/supabase-js'
+import { hallazgoSlug } from '../../lib/slugify'
+import { nicho, nichoId } from '../../lib/nicho'
+
+export async function getStaticPaths() {
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_KEY,
+  )
+  const nichoId = import.meta.env.PUBLIC_NICHO ?? 'bomberos'
+  const { data } = await supabase
+    .from('hallazgos')
+    .select('id, titulo, descripcion, fuente, fecha, url')
+    .eq('nicho', nichoId)
+    .order('fecha', { ascending: false, nullsFirst: false })
+  return (data ?? []).map(h => ({
+    params: { id: hallazgoSlug(h.titulo ?? '', h.id) },
+    props: { hallazgo: h },
+  }))
+}
+
+const { hallazgo } = Astro.props
+
+const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {
+  'BOE':                     { label: 'Boletín oficial', icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50'    },
+  'CENDOJ':                  { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'      },
+  'CENDOJ (vía DuckDuckGo)': { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'      },
+  'Google News':             { label: 'Prensa',           icon: '📰',  color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'         },
+}
+function sourceMeta(fuente: string) {
+  if (fuente?.startsWith('Reddit')) return { label: 'Foro', icon: '💬', color: 'text-orange-400 bg-orange-950/60 ring-orange-700/50' }
+  return SOURCE_META[fuente] ?? { label: fuente ?? 'Fuente', icon: '🔗', color: 'text-slate-400 bg-slate-800 ring-slate-700/50' }
+}
+const sm = sourceMeta(hallazgo.fuente)
+
+const fecha = hallazgo.fecha
+  ? new Date(hallazgo.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+  : null
+
+const pageTitle = `${hallazgo.titulo} · ${nicho.nombre}`
+const pageDesc  = hallazgo.descripcion
+  ? hallazgo.descripcion.slice(0, 160)
+  : `Señal detectada en ${sm.label}. Consulta el documento original en ${new URL(nicho.siteUrl).hostname}.`
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: hallazgo.titulo,
+  ...(hallazgo.descripcion ? { description: hallazgo.descripcion } : {}),
+  ...(hallazgo.fecha       ? { datePublished: hallazgo.fecha }     : {}),
+  inLanguage: 'es',
+  url: `${nicho.siteUrl}/hallazgos/${hallazgoSlug(hallazgo.titulo ?? '', hallazgo.id)}`,
+  isPartOf: { '@type': 'WebSite', url: nicho.siteUrl },
+  ...(hallazgo.url ? { sameAs: hallazgo.url } : {}),
+}
+---
+
+<Layout title={pageTitle} description={pageDesc} {jsonLd}>
+
+  <nav class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
+      <a href="/" class="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        {nicho.nombre}
+      </a>
+      <span class="text-slate-700">/</span>
+      <span class="text-slate-500 text-sm truncate max-w-xs">{hallazgo.titulo}</span>
+    </div>
+  </nav>
+
+  <main class="max-w-3xl mx-auto px-4 py-12">
+
+    <div class="mb-6 flex flex-wrap items-center gap-3">
+      <span class={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${sm.color}`}>
+        {sm.icon} {sm.label}
+      </span>
+      {fecha && <time class="text-xs text-slate-500">{fecha}</time>}
+    </div>
+
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-50 leading-tight mb-6">
+      {hallazgo.titulo}
+    </h1>
+
+    {hallazgo.descripcion && (
+      <p class="text-slate-400 text-base leading-relaxed mb-8">
+        {hallazgo.descripcion}
+      </p>
+    )}
+
+    {hallazgo.url && (
+      <a
+        href={hallazgo.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-semibold transition-colors mb-10"
+      >
+        Ver documento original
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+        </svg>
+      </a>
+    )}
+
+    <div class="border-t border-slate-800 pt-8 mt-10">
+      <p class="text-sm text-slate-400 mb-4">
+        ¿Tienes una situación similar? Usa el buscador para encontrar más precedentes.
+      </p>
+      <a
+        href="/"
+        class="inline-flex items-center gap-2 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+      >
+        Buscar más casos
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-slate-800/60 mt-10">
+    <div class="max-w-3xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-600">
+      <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
+      <nav class="flex gap-4">
+        <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>
+        <a href="/politica-privacidad" class="hover:text-slate-400 transition-colors">Privacidad</a>
+        <a href="/politica-cookies"    class="hover:text-slate-400 transition-colors">Cookies</a>
+      </nav>
+    </div>
+  </footer>
+
+</Layout>
