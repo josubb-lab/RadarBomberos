@@ -22,12 +22,10 @@ export default {
   ],
   queryTemplateCiudad: (c) =>
     `docentes ${c} oposición (impugnación OR fraude OR irregularidad OR denuncia OR anulación)`,
-  topicKeywords: [
-    'oposicion', 'oposiciones', 'convocatoria', 'proceso selectivo', 'pruebas selectivas',
-    'docente', 'docentes', 'maestro', 'maestros', 'profesor', 'profesores',
-    'cuerpo de maestros', 'educacion primaria', 'educacion secundaria',
-    'interino', 'interinos', 'bolsa de trabajo', 'bolsa interinos',
-    'programacion didactica', 'unidad didactica',
+  nichoKeywords: [
+    'docente', 'docentes', 'maestro', 'maestros', 'profesor de secundaria', 'profesores de secundaria',
+    'cuerpo de maestros', 'interino docente', 'interinos docentes', 'bolsa de interinos',
+    'oposicion docente', 'oposiciones docentes', 'oposicion maestro', 'oposiciones maestros',
   ],
   extraStopWords: [],
 

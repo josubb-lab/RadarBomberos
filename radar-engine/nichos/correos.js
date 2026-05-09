@@ -21,10 +21,9 @@ export default {
   ],
   queryTemplateCiudad: (c) =>
     `correos ${c} oposición (impugnación OR fraude OR irregularidad OR denuncia OR anulación)`,
-  topicKeywords: [
-    'oposicion', 'oposiciones', 'convocatoria', 'proceso selectivo', 'pruebas selectivas',
-    'correos', 'cartero', 'repartidor', 'sociedad estatal correos',
-    'OPE correos', 'correos y telegrafos', 'correos y telégrafos',
+  nichoKeywords: [
+    'sociedad estatal correos', 'OPE correos', 'ope correos', 'correos y telegrafos',
+    'correos y telégrafos', 'oposicion correos', 'oposiciones correos',
   ],
   extraStopWords: [],
 

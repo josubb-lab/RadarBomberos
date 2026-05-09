@@ -88,8 +88,14 @@ async function fetchGoogleNews(query) {
 export async function analizarNoticias(config) {
   const stopWords = [...BASE_STOP_WORDS, ...(config.extraStopWords ?? [])];
 
+  const OPOSICION_KEYWORDS = [
+    'oposicion', 'oposiciones', 'proceso selectivo', 'convocatoria', 'pruebas selectivas',
+    'bases de la convocatoria', 'plaza', 'plazas', 'tribunal de seleccion', 'bolsa',
+  ];
+
   const tieneStopWord      = (t) => stopWords.some((sw) => normalizar(t).includes(normalizar(sw)));
-  const esSobreNicho       = (t) => config.topicKeywords.some((kw) => normalizar(t).includes(normalizar(kw)));
+  const esSobreNicho       = (t) => config.nichoKeywords.some((kw) => normalizar(t).includes(normalizar(kw)));
+  const esSobreOposicion   = (t) => OPOSICION_KEYWORDS.some((kw) => normalizar(t).includes(normalizar(kw)));
   const tieneSeñalNegativa = (t) => NEGATIVE_KEYWORDS.some((kw) => normalizar(t).includes(normalizar(kw)));
 
   const QUERIES = [
@@ -120,6 +126,7 @@ export async function analizarNoticias(config) {
       if (!esReciente(fecha))         continue;
       if (tieneStopWord(texto))       continue;
       if (!esSobreNicho(texto))       continue;
+      if (!esSobreOposicion(texto))   continue;
       if (!tieneSeñalNegativa(texto)) continue;
 
       hallazgos.push({

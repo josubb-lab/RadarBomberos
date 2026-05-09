@@ -21,10 +21,9 @@ export default {
   ],
   queryTemplateCiudad: (c) =>
     `policía local ${c} oposición (impugnación OR fraude OR irregularidad OR denuncia OR anulación)`,
-  topicKeywords: [
-    'oposicion', 'oposiciones', 'convocatoria', 'proceso selectivo', 'pruebas selectivas',
+  nichoKeywords: [
     'policía local', 'policia local', 'policía municipal', 'policia municipal',
-    'agente de policía', 'agente de policia', 'subinspector', 'auxiliar de policía',
+    'agente de policía local', 'agente de policia local', 'subinspector de policia', 'auxiliar de policía local',
   ],
   extraStopWords: [],
 

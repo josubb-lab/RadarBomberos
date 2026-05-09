@@ -21,10 +21,8 @@ export default {
   ],
   queryTemplateCiudad: (c) =>
     `bomberos ${c} oposición (impugnación OR fraude OR irregularidad OR denuncia OR anulación)`,
-  topicKeywords: [
-    'oposicion', 'oposiciones', 'convocatoria', 'plaza de bombero', 'plazas de bombero',
-    'proceso selectivo', 'bases de la convocatoria', 'pruebas selectivas',
-    'bombero', 'bomberos', 'servicio de extincion', 'speis', 'parque de bomberos',
+  nichoKeywords: [
+    'bombero', 'bomberos', 'servicio de extincion', 'speis', 'parque de bomberos', 'salvamento',
   ],
   extraStopWords: [],
 

@@ -21,10 +21,9 @@ export default {
   ],
   queryTemplateCiudad: (c) =>
     `policía nacional ${c} oposición (impugnación OR fraude OR irregularidad OR denuncia OR anulación)`,
-  topicKeywords: [
-    'oposicion', 'oposiciones', 'convocatoria', 'proceso selectivo', 'pruebas selectivas',
+  nichoKeywords: [
     'policía nacional', 'policia nacional', 'CNP', 'cuerpo nacional de policía',
-    'escala básica', 'inspector de policía', 'subinspector de policía',
+    'cuerpo nacional de policia', 'escala básica policía', 'escala basica policia',
   ],
   extraStopWords: [],
 
