@@ -1,0 +1,210 @@
+---
+import Layout from '../layouts/Layout.astro'
+import { createClient } from '@supabase/supabase-js'
+import { hallazgoSlug } from '../lib/slugify'
+import { nicho, nichoId } from '../lib/nicho'
+import { TODAS_UBICACIONES, slugUbicacion, nombreDesdeSlug } from '../lib/ubicaciones'
+
+export function getStaticPaths() {
+  return TODAS_UBICACIONES.map(u => ({ params: { ubicacion: slugUbicacion(u) } }))
+}
+
+const { ubicacion } = Astro.params
+const nombreUbicacion = nombreDesdeSlug(ubicacion)
+
+const supabase = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_KEY,
+)
+
+const { data: hallazgos } = await supabase
+  .from('hallazgos')
+  .select('id, titulo, descripcion, fuente, fecha, url')
+  .eq('nicho', nichoId)
+  .order('fecha', { ascending: false, nullsFirst: false })
+  .limit(500)
+
+const total = hallazgos?.length ?? 0
+
+const pageTitle    = `Irregularidades en oposiciones a ${nicho.colectivo} en ${nombreUbicacion} · ${nicho.nombre}`
+const pageDesc     = `Señales de irregularidades, impugnaciones y sentencias en oposiciones a ${nicho.colectivo} en ${nombreUbicacion}. Consulta ${total} casos documentados.`
+
+const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {
+  'BOE':                     { label: 'Boletín oficial', icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50' },
+  'CENDOJ':                  { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'  },
+  'CENDOJ (vía DuckDuckGo)': { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'  },
+  'Google News':             { label: 'Prensa',           icon: '📰',  color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'     },
+}
+function sourceMeta(fuente: string) {
+  if (fuente?.startsWith('Reddit')) return { label: 'Foro', icon: '💬', color: 'text-orange-400 bg-orange-950/60 ring-orange-700/50' }
+  return SOURCE_META[fuente] ?? { label: fuente ?? 'Fuente', icon: '🔗', color: 'text-slate-400 bg-slate-800 ring-slate-700/50' }
+}
+
+const recientes = (hallazgos ?? []).slice(0, 30)
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: pageTitle,
+  description: pageDesc,
+  url: `${nicho.siteUrl}/${ubicacion}`,
+  inLanguage: 'es',
+  isPartOf: { '@type': 'WebSite', url: nicho.siteUrl },
+}
+---
+
+<Layout title={pageTitle} description={pageDesc} {jsonLd}>
+
+  <!-- NAV -->
+  <nav class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
+      <a href="/" class="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        {nicho.nombre}
+      </a>
+      <span class="text-slate-700">/</span>
+      <span class="text-slate-500 text-sm">{nombreUbicacion}</span>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/60">
+    <div class="max-w-4xl mx-auto px-4 py-12 lg:py-16">
+      <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-3">
+        {nicho.tagline}
+      </p>
+      <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-50 leading-tight mb-3">
+        Irregularidades en oposiciones a {nicho.colectivo} en {nombreUbicacion}
+      </h1>
+      <p class="text-slate-400 text-base max-w-2xl mb-6">
+        {total} señales documentadas — sentencias, impugnaciones, denuncias y noticias sobre procesos selectivos a {nicho.colectivo} con irregularidades en {nombreUbicacion} y alrededores.
+      </p>
+      <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors">
+        Buscar un caso concreto
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <main class="max-w-4xl mx-auto px-4 py-10 space-y-10">
+
+    <!-- HALLAZGOS -->
+    <section>
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-5">
+        Señales más recientes
+      </h2>
+      {recientes.length === 0 ? (
+        <p class="text-slate-500 text-sm">Aún no hay señales registradas. El radar actualiza diariamente.</p>
+      ) : (
+        <ol class="space-y-4">
+          {recientes.map(h => {
+            const sm    = sourceMeta(h.fuente)
+            const fecha = h.fecha
+              ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+              : null
+            return (
+              <li class="rounded-xl border border-slate-800 bg-slate-900/50 p-5 hover:border-slate-700 transition-colors">
+                <div class="flex flex-wrap items-center gap-2 mb-2">
+                  <span class={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${sm.color}`}>
+                    {sm.icon} {sm.label}
+                  </span>
+                  {fecha && <time class="text-xs text-slate-500 ml-auto">{fecha}</time>}
+                </div>
+                <a href={`/hallazgos/${hallazgoSlug(h.titulo ?? '', h.id)}`} class="block text-sm font-semibold text-slate-100 leading-snug mb-1 hover:text-amber-400 transition-colors">
+                  {h.titulo}
+                </a>
+                {h.descripcion && (
+                  <p class="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                    {h.descripcion.slice(0, 200)}
+                  </p>
+                )}
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </section>
+
+    <!-- CTA ABOGADO -->
+    <section class="rounded-xl border border-amber-800/40 bg-amber-950/30 px-6 py-6">
+      <p class="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-2">Asesoramiento legal</p>
+      <h2 class="text-base font-bold text-amber-300 mb-2">
+        ¿Tienes una irregularidad en {nombreUbicacion}?
+      </h2>
+      <p class="text-sm text-slate-400 mb-4">
+        Un abogado especialista en contencioso-administrativo puede analizar tu caso y ayudarte a impugnar o recurrir. Primera consulta gratuita.
+      </p>
+      <a
+        href={`mailto:contacto@${new URL(nicho.siteUrl).hostname}?subject=Consulta%20legal%20oposici%C3%B3n%20${encodeURIComponent(nicho.colectivo)}%20${encodeURIComponent(nombreUbicacion)}`}
+        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-semibold transition-colors"
+      >
+        Solicitar consulta gratuita
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+    </section>
+
+    <!-- CTA ACADEMIAS -->
+    <section class="rounded-xl border border-slate-700 bg-slate-900/50 px-6 py-6">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Preparación de oposiciones</p>
+      <h2 class="text-base font-bold text-slate-200 mb-2">
+        Prepara tu oposición a {nicho.colectivo} con garantías
+      </h2>
+      <p class="text-sm text-slate-400 mb-5">
+        Conocer los precedentes es solo el primer paso. Estas academias especializadas te preparan para superar el proceso selectivo.
+      </p>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <a
+          href="https://www.adams.es"
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          class="flex items-center justify-center px-4 py-3 rounded-lg border border-slate-700 bg-slate-800 hover:border-amber-600 hover:text-amber-400 text-slate-300 text-sm font-semibold transition-colors text-center"
+        >
+          Adams Formación
+        </a>
+        <a
+          href="https://www.cef.es"
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          class="flex items-center justify-center px-4 py-3 rounded-lg border border-slate-700 bg-slate-800 hover:border-amber-600 hover:text-amber-400 text-slate-300 text-sm font-semibold transition-colors text-center"
+        >
+          CEF
+        </a>
+        <a
+          href="https://www.preparadores.eu"
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          class="flex items-center justify-center px-4 py-3 rounded-lg border border-slate-700 bg-slate-800 hover:border-amber-600 hover:text-amber-400 text-slate-300 text-sm font-semibold transition-colors text-center"
+        >
+          Preparadores
+        </a>
+      </div>
+    </section>
+
+    <!-- SLOT ADSENSE -->
+    <div class="min-h-[100px] rounded-xl border border-slate-800/40 bg-slate-900/20 flex items-center justify-center">
+      <!-- Google AdSense slot — reemplazar con el código real -->
+      <p class="text-xs text-slate-700">Publicidad</p>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/60 mt-10">
+    <div class="max-w-4xl mx-auto px-4 py-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-600">
+      <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
+      <nav class="flex flex-wrap gap-x-4 gap-y-1 justify-center">
+        <a href="/origen-datos"        class="hover:text-slate-400 transition-colors">Fuentes</a>
+        <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>
+        <a href="/politica-privacidad" class="hover:text-slate-400 transition-colors">Privacidad</a>
+        <a href="/politica-cookies"    class="hover:text-slate-400 transition-colors">Cookies</a>
+      </nav>
+    </div>
+  </footer>
+
+</Layout>
