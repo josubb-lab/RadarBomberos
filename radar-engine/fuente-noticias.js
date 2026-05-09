@@ -6,7 +6,7 @@
 import Parser from "rss-parser";
 
 const PUNTOS_NOTICIA = 15;
-const MAX_DIAS       = 730;
+const MAX_DIAS       = 1825;
 const DELAY_MS       = 1_400;
 
 const COMUNIDADES = [
