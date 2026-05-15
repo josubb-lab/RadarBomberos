@@ -1,14 +1,18 @@
 /**
  * scripts/weekly.js
- * Genera el export CSV semanal + informe markdown en un solo comando.
+ * Genera el export CSV semanal + informe markdown.
  *
  * Uso:
  *   node --env-file=.env scripts/weekly.js [--nicho=bomberos]
  *   npm run weekly:bomberos
  *
  * Output:
- *   exports/csv/vigia-{nicho}-{YYYY-MM-DD}.csv
+ *   exports/csv/vigia-{nicho}-{YYYY-MM-DD}.csv        ← producto vendible
  *   exports/informes/vigia-{nicho}-semanal-{YYYY-WW}.md
+ *
+ * El CSV exporta procesos con señal activa (estado != cerrado).
+ * Una fila por señal — si un proceso tiene 3 señales, ocupa 3 filas.
+ * Ordenado por fecha_señal DESC: los casos más recientes arriba.
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -30,22 +34,20 @@ function isoWeek(d = new Date()) {
   return { year: y, week: String(wk).padStart(2, '0') };
 }
 
-function fmtDate(d = new Date()) {
-  return d.toISOString().slice(0, 10);
-}
-
-function hace7Dias() {
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  return fmtDate(d);
-}
-
+function fmtDate(d = new Date()) { return d.toISOString().slice(0, 10); }
+function hace7Dias() { const d = new Date(); d.setDate(d.getDate() - 7); return fmtDate(d); }
 function fmtLegible(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-// ── CSV helpers ───────────────────────────────────────────────────────────────
+// ── CSV ───────────────────────────────────────────────────────────────────────
+
+const CSV_COLS = [
+  'organismo', 'provincia', 'comunidad', 'cuerpo', 'plazas',
+  'estado', 'tipo_senal', 'fecha_senal', 'descripcion_proceso',
+  'url_oficial', 'url_senal', 'fuente_senal', 'actualizado',
+];
 
 function csvCell(v) {
   if (v == null) return '';
@@ -55,103 +57,82 @@ function csvCell(v) {
 }
 
 function toCSV(rows) {
-  const COLS = ['fecha', 'tipo', 'titulo', 'descripcion', 'fuente', 'url', 'relevancia', 'curado'];
   return [
-    COLS.join(','),
-    ...rows.map(r => COLS.map(c => csvCell(r[c])).join(',')),
+    CSV_COLS.join(','),
+    ...rows.map(r => CSV_COLS.map(c => csvCell(r[c])).join(',')),
   ].join('\n') + '\n';
 }
 
-// ── Etiquetas ─────────────────────────────────────────────────────────────────
+// ── Etiquetas estado ──────────────────────────────────────────────────────────
 
-const TIPO_ES = {
-  sentencia:        'Sentencia',
-  impugnacion:      'Impugnación',
-  anulacion:        'Anulación',
-  correccion_bases: 'Corrección BOE',
-  suspension:       'Suspensión',
-  medida_cautelar:  'Medida cautelar',
-  psicotecnico:     'Psicotécnico',
-  denuncia:         'Denuncia (foro)',
-  noticia:          'Noticia',
+const ESTADO_ES = {
+  abierto:    'Abierto',
+  activo:     'Activo',
+  impugnado:  'Impugnado',
+  suspendido: 'Suspendido',
+  anulado:    'Anulado',
 };
 
-const TIPO_ICON = {
-  sentencia:        '⚖️',
-  impugnacion:      '🚨',
-  anulacion:        '❌',
-  correccion_bases: '📋',
-  suspension:       '⏸️',
-  medida_cautelar:  '⛔',
-  psicotecnico:     '🧠',
-  denuncia:         '💬',
-  noticia:          '📰',
+const ESTADO_ORDEN = { impugnado: 0, suspendido: 1, anulado: 2, abierto: 3, activo: 4 };
+
+const TIPO_SENAL_ES = {
+  sentencia:    'Sentencia',
+  impugnacion:  'Impugnación',
+  anulacion:    'Anulación',
+  correccion:   'Corrección BOE',
+  suspension:   'Suspensión',
+  recurso:      'Recurso',
+  convocatoria: 'Convocatoria',
 };
-
-function etiqueta(tipo) {
-  return `${TIPO_ICON[tipo] ?? '•'} ${TIPO_ES[tipo] ?? tipo}`;
-}
-
-function limpiarTitulo(titulo = '') {
-  return titulo.replace(/ - [^-]{3,40}$/, '').trim(); // quita " - NombreFuente" al final
-}
 
 // ── Informe markdown ──────────────────────────────────────────────────────────
 
-function generarInforme({ nicho, fechaHoy, semana, novedades, top10, stats }) {
-  const nichoLabel = nicho.charAt(0).toUpperCase() + nicho.slice(1);
+function generarInforme({ nicho, fechaHoy, semana, procesos, novedades }) {
+  const nichoLabel   = nicho.charAt(0).toUpperCase() + nicho.slice(1);
   const inicioSemana = new Date();
   inicioSemana.setDate(inicioSemana.getDate() - 7);
 
+  // Agrupar filas CSV por proceso para el resumen
+  const porProceso = {};
+  for (const r of procesos) {
+    if (!porProceso[r.organismo]) porProceso[r.organismo] = { ...r, senales: [] };
+    porProceso[r.organismo].senales.push({ tipo: r.tipo_senal, fecha: r.fecha_senal });
+  }
+  const listaProcesos = Object.values(porProceso);
+
+  const bloqueActivos = listaProcesos.length > 0
+    ? listaProcesos.map(p => {
+        const senalesStr = p.senales
+          .map(s => `${TIPO_SENAL_ES[s.tipo] ?? s.tipo}${s.fecha ? ` (${s.fecha})` : ''}`)
+          .join(', ');
+        return `- **${p.organismo}** · ${p.provincia}\n` +
+               `  Estado: ${ESTADO_ES[p.estado] ?? p.estado} · ${p.cuerpo}${p.plazas ? ` · ${p.plazas} plazas` : ''}\n` +
+               `  Señales: ${senalesStr}`;
+      }).join('\n')
+    : '_Sin procesos activos con señal._';
+
   const bloqueNovedades = novedades.length > 0
     ? novedades.map(r =>
-        `### ${etiqueta(r.tipo)} · ${fmtLegible(r.fecha)}\n` +
-        `**${limpiarTitulo(r.titulo)}**\n` +
-        (r.descripcion && r.descripcion !== r.titulo
-          ? `> ${r.descripcion.slice(0, 200)}\n`
-          : '') +
-        `Fuente: ${r.fuente}\n`
+        `- **${r.titulo?.slice(0, 100)}**\n  Fuente: ${r.fuente} · ${r.fecha ?? '—'}`
       ).join('\n')
-    : '_Sin señales nuevas esta semana._\n';
-
-  const bloqueTop = top10.map((r, i) =>
-    `${i + 1}. **[${TIPO_ES[r.tipo] ?? r.tipo}]** · ${r.fecha ?? '—'}\n` +
-    `   ${limpiarTitulo(r.titulo)}\n` +
-    `   _${r.fuente}_\n`
-  ).join('\n');
-
-  const bloqueStats = Object.entries(stats)
-    .sort((a, b) => b[1] - a[1])
-    .map(([tipo, n]) => `| ${TIPO_ES[tipo] ?? tipo} | ${n} |`)
-    .join('\n');
-
-  const total = Object.values(stats).reduce((s, n) => s + n, 0);
+    : '_Sin señales nuevas en el observatorio esta semana._';
 
   return `# Vigía ${nichoLabel} — Informe Semanal
 ## Semana ${semana.week}/${semana.year} · ${fmtLegible(fmtDate(inicioSemana))} – ${fmtLegible(fechaHoy)}
 
 ---
 
-## Novedades esta semana
+## Procesos con señal activa — Estado del universo
+
+_${listaProcesos.length} proceso${listaProcesos.length !== 1 ? 's' : ''} con señal · ${procesos.length} señal${procesos.length !== 1 ? 'es' : ''} total_
+
+${bloqueActivos}
+
+---
+
+## Novedades observatorio esta semana
 
 ${bloqueNovedades}
-
----
-
-## Señales activas destacadas
-
-${bloqueTop}
-
----
-
-## Dataset acumulado
-
-| Tipo | Señales |
-|---|---|
-${bloqueStats}
-| **TOTAL** | **${total}** |
-
-_CSV completo adjunto: \`vigia-${nicho}-${fechaHoy}.csv\`_
 
 ---
 
@@ -160,17 +141,19 @@ _CSV completo adjunto: \`vigia-${nicho}-${fechaHoy}.csv\`_
 \`\`\`
 Asunto: Vigía Bomberos — Informe Semanal ${semana.week}/${semana.year}
 
-Adjunto el informe semanal y el CSV actualizado.
+Adjunto el CSV actualizado con los procesos selectivos de bombero
+que tienen señales jurídicas activas.
 
-Esta semana: ${novedades.length} señal${novedades.length !== 1 ? 'es' : ''} nueva${novedades.length !== 1 ? 's' : ''} detectada${novedades.length !== 1 ? 's' : ''}.
-Dataset total: ${total} señales verificadas.
+Procesos con señal activa: ${listaProcesos.length}
+Señales totales documentadas: ${procesos.length}
+Novedades esta semana en el observatorio: ${novedades.length}
 
 Un saludo,
 [Tu nombre]
 \`\`\`
 
 ---
-_Generado: ${fechaHoy} · Vigía Bomberos_
+_Generado: ${fechaHoy} · Vigía ${nichoLabel}_
 `;
 }
 
@@ -185,67 +168,91 @@ async function main() {
   const sb       = createClient(SUPABASE_URL, SUPABASE_KEY);
   const fechaHoy = fmtDate();
   const semana   = isoWeek();
-  const desde7d  = hace7Dias();
 
   console.log(`\n🗓  Vigía ${nicho} — semana ${semana.week}/${semana.year}\n`);
 
-  // 1. Señales nuevas esta semana (rel >= 2)
+  // 1. Procesos con señal activa (estado != cerrado, con señales)
+  const { data: procesosRaw = [], error: ep } = await sb
+    .from('procesos_selectivos')
+    .select(`
+      organismo, provincia, comunidad, cuerpo, plazas,
+      estado, descripcion, url_oficial, updated_at,
+      senales_proceso(tipo, fecha, url, fuente)
+    `)
+    .eq('nicho', nicho)
+    .neq('estado', 'cerrado')
+    .order('updated_at', { ascending: false });
+
+  if (ep) { console.error('❌ Error leyendo procesos:', ep.message); process.exit(1); }
+
+  // Expandir: una fila por señal, ordenar por fecha_señal DESC
+  const filas = [];
+  for (const p of procesosRaw) {
+    const senales = p.senales_proceso ?? [];
+    if (senales.length === 0) continue; // solo procesos con señal
+    for (const s of senales) {
+      filas.push({
+        organismo:           p.organismo,
+        provincia:           p.provincia,
+        comunidad:           p.comunidad,
+        cuerpo:              p.cuerpo,
+        plazas:              p.plazas,
+        estado:              p.estado,
+        tipo_senal:          s.tipo,
+        fecha_senal:         s.fecha,
+        descripcion_proceso: p.descripcion,
+        url_oficial:         p.url_oficial,
+        url_senal:           s.url,
+        fuente_senal:        s.fuente,
+        actualizado:         p.updated_at?.slice(0, 10),
+      });
+    }
+  }
+
+  // Ordenar: estado crítico primero, luego fecha señal DESC
+  filas.sort((a, b) => {
+    const eo = (ESTADO_ORDEN[a.estado] ?? 9) - (ESTADO_ORDEN[b.estado] ?? 9);
+    if (eo !== 0) return eo;
+    if (a.fecha_senal && b.fecha_senal) return b.fecha_senal.localeCompare(a.fecha_senal);
+    if (a.fecha_senal) return -1;
+    if (b.fecha_senal) return 1;
+    return 0;
+  });
+
+  // 2. Novedades del observatorio esta semana (contexto para el informe)
   const { data: novedades = [] } = await sb
     .from('hallazgos')
-    .select('tipo, relevancia, fuente, fecha, titulo, descripcion, url')
+    .select('tipo, fuente, fecha, titulo')
     .eq('nicho', nicho)
     .gte('relevancia', 2)
-    .gte('fecha', desde7d)
-    .order('fecha', { ascending: false, nullsFirst: false });
-
-  // 2. Top 10 señales curadas o de alta relevancia (para el informe)
-  const { data: top10raw = [] } = await sb
-    .from('hallazgos')
-    .select('tipo, relevancia, fuente, fecha, titulo, url')
-    .eq('nicho', nicho)
-    .gte('relevancia', 2)
+    .gte('fecha', hace7Dias())
     .in('tipo', ['sentencia', 'impugnacion', 'anulacion', 'suspension', 'medida_cautelar'])
-    .or('fecha.gte.2020-01-01,curado.eq.true')
-    .not('titulo', 'ilike', '%lista provisional%')
-    .not('titulo', 'ilike', '%lista definitiva%')
-    .order('fecha', { ascending: false, nullsFirst: false })
-    .limit(10);
-
-  // 3. Dataset completo para CSV (rel >= 2, desde 2020 o curado)
-  const { data: csvData = [] } = await sb
-    .from('hallazgos')
-    .select('fecha, tipo, titulo, descripcion, fuente, url, relevancia, curado')
-    .eq('nicho', nicho)
-    .not('tipo', 'is', null)
-    .gte('relevancia', 2)
-    .or('fecha.gte.2020-01-01,curado.eq.true')
     .order('fecha', { ascending: false, nullsFirst: false });
-
-  // Estadísticas
-  const stats = {};
-  for (const r of csvData) stats[r.tipo] = (stats[r.tipo] ?? 0) + 1;
 
   // ── Guardar CSV ─────────────────────────────────────────────────────────────
   mkdirSync('exports/csv', { recursive: true });
   const csvPath = `exports/csv/vigia-${nicho}-${fechaHoy}.csv`;
-  writeFileSync(csvPath, toCSV(csvData), 'utf8');
-  console.log(`📊 CSV → ${csvPath} (${csvData.length} registros)`);
+  writeFileSync(csvPath, toCSV(filas), 'utf8');
+  console.log(`📊 CSV → ${csvPath} (${filas.length} señales en ${procesosRaw.filter(p => (p.senales_proceso ?? []).length > 0).length} procesos)`);
 
   // ── Guardar informe ─────────────────────────────────────────────────────────
   mkdirSync('exports/informes', { recursive: true });
   const mdPath = `exports/informes/vigia-${nicho}-semanal-${semana.year}-${semana.week}.md`;
-  const md = generarInforme({ nicho, fechaHoy, semana, novedades, top10: top10raw, stats });
-  writeFileSync(mdPath, md, 'utf8');
+  writeFileSync(mdPath, generarInforme({ nicho, fechaHoy, semana, procesos: filas, novedades }), 'utf8');
   console.log(`📝 Informe → ${mdPath}`);
 
   // ── Resumen consola ─────────────────────────────────────────────────────────
-  console.log(`\n── Resumen ───────────────────────────────────`);
-  console.log(`   Novedades esta semana (rel≥2):  ${novedades.length}`);
-  console.log(`   Dataset total exportado:        ${csvData.length}`);
-  console.log(`   Distribución:`);
-  for (const [tipo, n] of Object.entries(stats).sort((a, b) => b[1] - a[1])) {
-    console.log(`     ${(TIPO_ES[tipo] ?? tipo).padEnd(20)} ${n}`);
+  const porEstado = {};
+  for (const f of filas) porEstado[f.estado] = (porEstado[f.estado] ?? 0) + 1;
+
+  console.log(`\n── Resumen ────────────────────────────────────`);
+  console.log(`   Procesos con señal activa:  ${procesosRaw.filter(p => (p.senales_proceso ?? []).length > 0).length}`);
+  console.log(`   Señales totales en CSV:     ${filas.length}`);
+  console.log(`   Por estado:`);
+  for (const [estado, n] of Object.entries(porEstado).sort((a,b) => (ESTADO_ORDEN[a[0]]??9)-(ESTADO_ORDEN[b[0]]??9))) {
+    console.log(`     ${(ESTADO_ES[estado] ?? estado).padEnd(12)} ${n}`);
   }
+  console.log(`   Novedades observatorio:     ${novedades.length}`);
   console.log(`\n✅ Listo. Revisa el informe antes de enviar.\n`);
 }
 
