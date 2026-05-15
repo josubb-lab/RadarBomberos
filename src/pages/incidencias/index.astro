@@ -1,0 +1,122 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import { nicho } from '../../lib/nicho'
+import { incidencias } from '../../data/incidencias'
+import type { TipoIncidencia, FuenteTipo } from '../../data/incidencias'
+
+const TIPO_LABEL: Record<TipoIncidencia, string> = {
+  correccion_convocatoria: 'Corrección BOE',
+  sentencia:               'Sentencia',
+  impugnacion:             'Impugnación',
+  pregunta_anulada:        'Pregunta anulada',
+  recurso:                 'Recurso',
+}
+
+const FUENTE_META: Record<FuenteTipo, { icon: string; color: string }> = {
+  BOE:          { icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50'  },
+  CENDOJ:       { icon: '⚖️', color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'    },
+  INAP:         { icon: '🏛️', color: 'text-violet-400 bg-violet-950/60 ring-violet-700/50' },
+  BOP:          { icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50'  },
+  sede_oficial: { icon: '🏛️', color: 'text-slate-400 bg-slate-800 ring-slate-700/50'    },
+}
+
+const pageTitle = `Incidencias en oposiciones a Bombero · ${nicho.nombre}`
+const pageDesc  = `Casos documentados de impugnaciones, correcciones de convocatorias y sentencias en oposiciones a bombero en España. Fuentes verificables: BOE, CENDOJ, INAP.`
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'Incidencias en oposiciones a Bombero',
+  description: pageDesc,
+  url: `${nicho.siteUrl}/incidencias`,
+  isPartOf: { '@type': 'WebSite', url: nicho.siteUrl },
+  inLanguage: 'es',
+}
+---
+
+<Layout title={pageTitle} description={pageDesc}>
+
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <!-- NAV -->
+  <nav class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
+      <a href="/" class="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        {nicho.nombre}
+      </a>
+      <span class="text-slate-700">/</span>
+      <span class="text-slate-400 text-sm font-medium">Incidencias</span>
+    </div>
+  </nav>
+
+  <!-- HEADER -->
+  <section class="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/60">
+    <div class="max-w-4xl mx-auto px-4 py-12">
+      <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-3">
+        Documentación verificada · Fuentes oficiales
+      </p>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-50 leading-tight mb-4">
+        Incidencias en oposiciones a Bombero
+      </h1>
+      <p class="text-slate-400 text-base max-w-2xl">
+        Casos documentados de correcciones de convocatoria, sentencias judiciales e impugnaciones
+        en procesos selectivos de bomberos en España. Cada entrada incluye la fuente oficial verificable.
+      </p>
+    </div>
+  </section>
+
+  <!-- LISTADO -->
+  <main class="max-w-4xl mx-auto px-4 py-10">
+
+    <p class="text-xs text-slate-500 mb-6">
+      {incidencias.length} {incidencias.length === 1 ? 'caso documentado' : 'casos documentados'}
+    </p>
+
+    <ol class="space-y-4">
+      {incidencias.map(inc => {
+        const fm = FUENTE_META[inc.fuente_tipo]
+        const fecha = new Date(inc.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+        return (
+          <li class="rounded-xl border border-slate-800 bg-slate-900/50 p-5 hover:border-slate-700 transition-colors">
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+              <span class={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${fm.color}`}>
+                {fm.icon} {TIPO_LABEL[inc.tipo]}
+              </span>
+              <span class="text-xs text-slate-600">{inc.organismo}</span>
+              <time class="text-xs text-slate-500 ml-auto">{fecha}</time>
+            </div>
+            <a
+              href={`/incidencias/${inc.slug}`}
+              class="block text-sm font-semibold text-slate-100 leading-snug mb-2 hover:text-amber-400 transition-colors"
+            >
+              {inc.titulo}
+            </a>
+            <p class="text-xs text-slate-500 leading-relaxed line-clamp-2">
+              {inc.resumen.slice(0, 200)}
+            </p>
+            {inc.referencia_oficial && (
+              <p class="mt-2 text-[11px] text-slate-600 font-mono">{inc.referencia_oficial}</p>
+            )}
+          </li>
+        )
+      })}
+    </ol>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/60 mt-10">
+    <div class="max-w-4xl mx-auto px-4 py-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-600">
+      <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
+      <nav class="flex flex-wrap gap-x-4 gap-y-1 justify-center">
+        <a href="/origen-datos"        class="hover:text-slate-400 transition-colors">Fuentes</a>
+        <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>
+        <a href="/politica-privacidad" class="hover:text-slate-400 transition-colors">Privacidad</a>
+      </nav>
+    </div>
+  </footer>
+
+</Layout>

@@ -20,22 +20,11 @@ const esNegativo = (t) => KEYWORDS_NEGATIVAS.some((kw) => t.toLowerCase().includ
 
 function buildParams(termino) {
   return new URLSearchParams({
-    "campo[0]":      "ORIS",
-    "dato[0][1]":    "1",
-    "dato[0][2]":    "2",
-    "dato[0][3]":    "3",
-    "dato[0][4]":    "4",
-    "dato[0][5]":    "5",
-    "operador[0]":   "and",
     "campo[1]":      "TITULOS",
     "dato[1]":       termino,
-    "operador[1]":   "and",
     "sort_field[0]": "FPU",
     "sort_order[0]": "desc",
     "page_hits":     "100",
-    "campo[6]":      "FPU",
-    "dato[6][0]":    "2000-01-01",
-    "operador[6]":   "and",
     "accion":        "Buscar",
   });
 }

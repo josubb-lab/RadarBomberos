@@ -79,7 +79,8 @@ async function fetchGoogleNews(query) {
     await sleep(DELAY_MS);
     return items;
   } catch (err) {
-    console.warn(`[Noticias] Error («${query.slice(0, 60)}»): ${err.message}`);
+    const msg = err.message || err.code || String(err);
+    console.warn(`[Noticias] Error («${query.slice(0, 60)}»): ${msg}`);
     CACHE.set(query, []);
     return [];
   }

@@ -1,0 +1,179 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import { nicho } from '../../lib/nicho'
+import { incidencias } from '../../data/incidencias'
+import type { TipoIncidencia, FuenteTipo } from '../../data/incidencias'
+
+export function getStaticPaths() {
+  return incidencias.map(inc => ({
+    params: { slug: inc.slug },
+    props:  { inc },
+  }))
+}
+
+const { inc } = Astro.props
+
+const TIPO_LABEL: Record<TipoIncidencia, string> = {
+  correccion_convocatoria: 'Corrección BOE',
+  sentencia:               'Sentencia',
+  impugnacion:             'Impugnación',
+  pregunta_anulada:        'Pregunta anulada',
+  recurso:                 'Recurso',
+}
+
+const FUENTE_META: Record<FuenteTipo, { icon: string; label: string; color: string }> = {
+  BOE:          { icon: '📋', label: 'Boletín Oficial del Estado', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50'     },
+  CENDOJ:       { icon: '⚖️', label: 'CENDOJ · Poder Judicial',   color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'        },
+  INAP:         { icon: '🏛️', label: 'INAP · Administración',     color: 'text-violet-400 bg-violet-950/60 ring-violet-700/50'  },
+  BOP:          { icon: '📋', label: 'Boletín Oficial Provincial', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50'     },
+  sede_oficial: { icon: '🏛️', label: 'Sede oficial',              color: 'text-slate-400 bg-slate-800 ring-slate-700/50'        },
+}
+
+const fm    = FUENTE_META[inc.fuente_tipo]
+const fecha = new Date(inc.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
+
+const pageTitle = `${inc.titulo} · ${nicho.nombre}`
+const pageDesc  = inc.resumen.slice(0, 160)
+
+const jsonLd = {
+  '@context':    'https://schema.org',
+  '@type':       'Article',
+  headline:      inc.titulo,
+  description:   inc.resumen,
+  datePublished: inc.fecha,
+  inLanguage:    'es',
+  url:           `${nicho.siteUrl}/incidencias/${inc.slug}`,
+  isPartOf:      { '@type': 'WebSite', url: nicho.siteUrl },
+  about: {
+    '@type': 'GovernmentService',
+    name:    inc.convocatoria,
+    provider: {
+      '@type': 'GovernmentOrganization',
+      name:    inc.organismo,
+    },
+  },
+}
+---
+
+<Layout title={pageTitle} description={pageDesc}>
+
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <!-- NAV -->
+  <nav class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-3xl mx-auto px-4 h-14 flex items-center gap-2 min-w-0">
+      <a href="/" class="text-slate-500 hover:text-slate-300 transition-colors text-sm shrink-0">
+        {nicho.nombre}
+      </a>
+      <span class="text-slate-700">/</span>
+      <a href="/incidencias" class="text-slate-500 hover:text-slate-300 transition-colors text-sm shrink-0">
+        Incidencias
+      </a>
+      <span class="text-slate-700">/</span>
+      <span class="text-slate-600 text-sm truncate">{inc.titulo}</span>
+    </div>
+  </nav>
+
+  <main class="max-w-3xl mx-auto px-4 py-12">
+
+    <!-- BADGES -->
+    <div class="flex flex-wrap items-center gap-2 mb-6">
+      <span class={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${fm.color}`}>
+        {fm.icon} {TIPO_LABEL[inc.tipo]}
+      </span>
+      <span class="text-xs text-slate-500">{inc.ubicacion}</span>
+      <time class="text-xs text-slate-500 ml-auto">{fecha}</time>
+    </div>
+
+    <!-- TÍTULO -->
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-50 leading-tight mb-8">
+      {inc.titulo}
+    </h1>
+
+    <!-- METADATOS -->
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 rounded-xl border border-slate-800 bg-slate-900/50 p-5">
+      <div>
+        <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-1">Organismo</dt>
+        <dd class="text-sm text-slate-300">{inc.organismo}</dd>
+      </div>
+      <div>
+        <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-1">Ubicación</dt>
+        <dd class="text-sm text-slate-300">{inc.ubicacion}</dd>
+      </div>
+      <div class="sm:col-span-2">
+        <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-1">Proceso / Convocatoria</dt>
+        <dd class="text-sm text-slate-300">{inc.convocatoria}</dd>
+      </div>
+      {inc.referencia_oficial && (
+        <div class="sm:col-span-2">
+          <dt class="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-1">Referencia oficial</dt>
+          <dd class="text-sm text-slate-300 font-mono">{inc.referencia_oficial}</dd>
+        </div>
+      )}
+    </dl>
+
+    <!-- RESUMEN -->
+    <div class="mb-8">
+      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Resumen del caso</h2>
+      <p class="text-slate-300 text-base leading-relaxed">{inc.resumen}</p>
+    </div>
+
+    <!-- FUENTE -->
+    <a
+      href={inc.fuente_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-semibold transition-colors mb-10"
+    >
+      {fm.icon} Ver fuente oficial — {fm.label}
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+      </svg>
+    </a>
+
+    <!-- CTA LEGAL -->
+    <div class="rounded-xl border border-amber-800/40 bg-amber-950/30 px-6 py-5 mb-10">
+      <p class="text-sm font-semibold text-amber-300 mb-1">¿Te afecta un caso similar?</p>
+      <p class="text-xs text-slate-400 mb-3">
+        Si estás afrontando una irregularidad en tu proceso selectivo de bombero,
+        un abogado especialista en contencioso-administrativo puede valorar tu caso.
+      </p>
+      <a
+        href={`mailto:contacto@${new URL(nicho.siteUrl).hostname}?subject=Consulta%20legal%20oposici%C3%B3n%20bombero&body=Ref%3A%20${encodeURIComponent(inc.referencia_oficial ?? inc.slug)}`}
+        class="inline-flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+      >
+        Solicitar asesoramiento gratuito
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+    </div>
+
+    <!-- VOLVER -->
+    <div class="border-t border-slate-800 pt-8">
+      <a
+        href="/incidencias"
+        class="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Ver todas las incidencias
+      </a>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/60 mt-6">
+    <div class="max-w-3xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-600">
+      <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
+      <nav class="flex gap-4">
+        <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>
+        <a href="/politica-privacidad" class="hover:text-slate-400 transition-colors">Privacidad</a>
+        <a href="/politica-cookies"    class="hover:text-slate-400 transition-colors">Cookies</a>
+      </nav>
+    </div>
+  </footer>
+
+</Layout>

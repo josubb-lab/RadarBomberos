@@ -6,7 +6,7 @@
 import axios from "axios";
 
 const PUNTOS_FORO = 2;
-const MIN_REPLIES = 1;
+const MIN_REPLIES = 0;
 
 const KEYWORDS_QUEJA = [
   "trampa", "fraude", "amiguismo", "enchufe", "irregularidad",
