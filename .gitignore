@@ -25,3 +25,6 @@ pnpm-debug.log*
 
 .vercel
 .claude/
+
+# CSV exports (no subir datos a git)
+exports/*.csv
