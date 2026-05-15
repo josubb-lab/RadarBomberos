@@ -205,18 +205,20 @@ async function main() {
     .eq('nicho', nicho)
     .gte('relevancia', 2)
     .in('tipo', ['sentencia', 'impugnacion', 'anulacion', 'suspension', 'medida_cautelar'])
+    .or('fecha.gte.2020-01-01,curado.eq.true')
     .not('titulo', 'ilike', '%lista provisional%')
     .not('titulo', 'ilike', '%lista definitiva%')
     .order('fecha', { ascending: false, nullsFirst: false })
     .limit(10);
 
-  // 3. Dataset completo para CSV (rel >= 2)
+  // 3. Dataset completo para CSV (rel >= 2, desde 2020 o curado)
   const { data: csvData = [] } = await sb
     .from('hallazgos')
     .select('fecha, tipo, titulo, descripcion, fuente, url, relevancia, curado')
     .eq('nicho', nicho)
     .not('tipo', 'is', null)
     .gte('relevancia', 2)
+    .or('fecha.gte.2020-01-01,curado.eq.true')
     .order('fecha', { ascending: false, nullsFirst: false });
 
   // Estadísticas

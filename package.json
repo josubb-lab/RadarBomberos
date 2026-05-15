@@ -12,7 +12,7 @@
     "astro": "astro",
     "weekly:bomberos": "node --env-file=.env scripts/weekly.js --nicho=bomberos",
     "classify:bomberos": "node --env-file=.env scripts/clasificar.js --nicho=bomberos",
-    "export:bomberos": "node --env-file=.env scripts/export.js --nicho=bomberos --min-relevancia=2",
+    "export:bomberos": "node --env-file=.env scripts/export.js --nicho=bomberos --min-relevancia=2 --desde=2020-01-01",
     "scraper:bomberos": "node --env-file=.env radar-engine/index.js --nicho=bomberos"
   },
   "dependencies": {

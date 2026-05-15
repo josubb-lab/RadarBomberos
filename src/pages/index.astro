@@ -14,6 +14,7 @@ const { data: hallazgos, error } = await supabase
   .from('hallazgos')
   .select('id, titulo, descripcion, fuente, fecha, url')
   .eq('nicho', nichoId)
+  .or('fecha.gte.2020-01-01,curado.eq.true')
   .order('fecha', { ascending: false, nullsFirst: false })
   .limit(500)
 
@@ -22,12 +23,13 @@ const { data: statsData } = await supabase
   .from('hallazgos')
   .select('tipo')
   .eq('nicho', nichoId)
-  .in('tipo', ['sentencia', 'impugnacion', 'correccion_bases'])
+  .in('tipo', ['sentencia', 'impugnacion', 'anulacion'])
+  .or('fecha.gte.2020-01-01,curado.eq.true')
 
 const total              = hallazgos?.length ?? 0
-const statsSentencias    = statsData?.filter(r => r.tipo === 'sentencia').length       ?? 0
-const statsImpugnaciones = statsData?.filter(r => r.tipo === 'impugnacion').length     ?? 0
-const statsBOE           = statsData?.filter(r => r.tipo === 'correccion_bases').length ?? 0
+const statsSentencias    = statsData?.filter(r => r.tipo === 'sentencia').length   ?? 0
+const statsImpugnaciones = statsData?.filter(r => r.tipo === 'impugnacion').length ?? 0
+const statsAnulaciones   = statsData?.filter(r => r.tipo === 'anulacion').length   ?? 0
 
 const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {
   'BOE':                     { label: 'Boletín oficial', icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50'    },
@@ -122,8 +124,8 @@ const jsonLd = {
           <dd class="text-2xl font-extrabold text-amber-400">{statsImpugnaciones}</dd>
         </div>
         <div>
-          <dt class="text-xs text-slate-500 mb-1">Publicaciones BOE</dt>
-          <dd class="text-2xl font-extrabold text-sky-400">{statsBOE}</dd>
+          <dt class="text-xs text-slate-500 mb-1">Anulaciones</dt>
+          <dd class="text-2xl font-extrabold text-sky-400">{statsAnulaciones}</dd>
         </div>
       </dl>
     </div>
@@ -181,12 +183,7 @@ const jsonLd = {
         <a href="/casos/anulaciones"
            class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-slate-700 transition-colors text-center">
           <p class="text-sm font-semibold text-slate-200">Anulaciones</p>
-          <p class="text-xs text-slate-500 mt-0.5">señales detectadas</p>
-        </a>
-        <a href="/casos/correcciones-boe"
-           class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-sky-800/60 hover:bg-sky-950/20 transition-colors text-center">
-          <p class="text-sm font-semibold text-slate-200">BOE oficial</p>
-          <p class="text-xs text-slate-500 mt-0.5">{statsBOE} señales</p>
+          <p class="text-xs text-slate-500 mt-0.5">{statsAnulaciones} señales</p>
         </a>
       </div>
     </div>

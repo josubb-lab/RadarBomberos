@@ -33,6 +33,8 @@ const KWS_OPOSICION = [
 ];
 
 const REGLAS = [
+  // correccion_bases primero: solo documentos BOE con lenguaje oficial de corrección
+  { tipo: 'correccion_bases', kws: ['corrección de errores', 'correccion de errores', 'rectificaci', 'fe de erratas', 'bases corregidas'] },
   { tipo: 'medida_cautelar',  kws: ['medida cautelar'] },
   { tipo: 'psicotecnico',     kws: ['psicotécnico', 'psicotecnico', 'test de personalidad', 'test psicológico', 'prueba psicológica', 'prueba psicologica'] },
   { tipo: 'sentencia',        kws: ['sentencia', 'tsj ', 'tribunal superior de justicia', 'tribunal supremo', 'fallo judicial', 'casación', 'casacion', 'ecli'] },
@@ -40,7 +42,6 @@ const REGLAS = [
   { tipo: 'impugnacion',      kws: ['impugnaci', 'impugn'] },
   { tipo: 'recurso',          kws: ['recurso contencioso', 'recurso de alzada', 'estimó el recurso', 'estimo el recurso', 'recurso administrativo', 'recurso de apelaci'] },
   { tipo: 'suspension',       kws: ['suspendi', 'suspensión', 'suspension', 'suspendido', 'suspendida'] },
-  { tipo: 'correccion_bases', kws: ['rectificaci', 'corrección de errores', 'correccion de errores', 'error en las bases', 'corrección bases', 'correccion bases', 'bases corregidas'] },
 ];
 
 function tieneContextoOposicion(texto) {
@@ -60,7 +61,7 @@ function clasificar(h) {
     for (const { tipo, kws } of REGLAS) {
       if (kws.some(kw => texto.includes(norm(kw)))) return { tipo, relevancia: 3 };
     }
-    return { tipo: 'correccion_bases', relevancia: 3 };
+    return { tipo: 'convocatoria', relevancia: 2 };
   }
 
   if (fuente === 'Google News (legal)') {

@@ -27,13 +27,6 @@ export async function getStaticPaths() {
       desc:   'Anulaciones de plazas, pruebas y convocatorias en oposiciones a bombero. Decisiones judiciales y administrativas.',
       intro:  'Anulaciones de convocatorias, plazas y pruebas en oposiciones a bombero detectadas en resoluciones judiciales y publicaciones oficiales.',
     },
-    {
-      tipo:   'correcciones-boe',
-      tipoDB: 'correccion_bases',
-      titulo: 'Correcciones y rectificaciones BOE en oposiciones a bombero',
-      desc:   'Correcciones de errores y rectificaciones publicadas en el BOE sobre bases y convocatorias de oposición a bombero.',
-      intro:  'Correcciones de errores y rectificaciones en bases de convocatorias de bombero publicadas en el Boletín Oficial del Estado.',
-    },
   ]
 
   const supabase = createClient(
@@ -50,6 +43,7 @@ export async function getStaticPaths() {
       .eq('nicho', 'bomberos')
       .eq('tipo', t.tipoDB)
       .gte('relevancia', 2)
+      .or('fecha.gte.2020-01-01,curado.eq.true')
       .order('fecha', { ascending: false, nullsFirst: false })
 
     paths.push({
