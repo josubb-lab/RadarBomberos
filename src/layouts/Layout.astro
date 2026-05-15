@@ -4,11 +4,13 @@ import '../styles/global.css'
 interface Props {
   title?: string
   description?: string
+  jsonLd?: object
 }
 
 const {
   title = 'Radar Bomberos',
   description = 'Transparencia y justicia para el opositor de bomberos en España.',
+  jsonLd,
 } = Astro.props
 ---
 
@@ -20,6 +22,7 @@ const {
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="description" content={description} />
     <title>{title}</title>
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>
   <body class="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-amber-500/30">
     <slot />

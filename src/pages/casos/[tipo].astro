@@ -1,0 +1,210 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import { createClient } from '@supabase/supabase-js'
+import { hallazgoSlug } from '../../lib/slugify'
+import { nicho } from '../../lib/nicho'
+
+export async function getStaticPaths() {
+  const TIPOS = [
+    {
+      tipo:   'sentencias',
+      tipoDB: 'sentencia',
+      titulo: 'Sentencias judiciales sobre oposiciones a bombero en España',
+      desc:   'Listado actualizado de sentencias de TSJ y Tribunal Supremo sobre procesos selectivos de bombero. Fuentes públicas.',
+      intro:  'Sentencias de tribunales de justicia que afectan a oposiciones, convocatorias y procesos selectivos de bombero en España.',
+    },
+    {
+      tipo:   'impugnaciones',
+      tipoDB: 'impugnacion',
+      titulo: 'Impugnaciones en oposiciones a bombero en España',
+      desc:   'Señales detectadas de impugnaciones activas en procesos selectivos de bombero. Sindicatos, aspirantes y organismos.',
+      intro:  'Impugnaciones de bases, pruebas y convocatorias de oposición a bombero detectadas en fuentes públicas y prensa especializada.',
+    },
+    {
+      tipo:   'anulaciones',
+      tipoDB: 'anulacion',
+      titulo: 'Anulaciones de convocatorias de bombero en España',
+      desc:   'Anulaciones de plazas, pruebas y convocatorias en oposiciones a bombero. Decisiones judiciales y administrativas.',
+      intro:  'Anulaciones de convocatorias, plazas y pruebas en oposiciones a bombero detectadas en resoluciones judiciales y publicaciones oficiales.',
+    },
+    {
+      tipo:   'correcciones-boe',
+      tipoDB: 'correccion_bases',
+      titulo: 'Correcciones y rectificaciones BOE en oposiciones a bombero',
+      desc:   'Correcciones de errores y rectificaciones publicadas en el BOE sobre bases y convocatorias de oposición a bombero.',
+      intro:  'Correcciones de errores y rectificaciones en bases de convocatorias de bombero publicadas en el Boletín Oficial del Estado.',
+    },
+  ]
+
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_KEY,
+  )
+
+  const paths = []
+
+  for (const t of TIPOS) {
+    const { data } = await supabase
+      .from('hallazgos')
+      .select('id, titulo, descripcion, fuente, fecha, url')
+      .eq('nicho', 'bomberos')
+      .eq('tipo', t.tipoDB)
+      .gte('relevancia', 2)
+      .order('fecha', { ascending: false, nullsFirst: false })
+
+    paths.push({
+      params: { tipo: t.tipo },
+      props:  { meta: t, hallazgos: data ?? [] },
+    })
+  }
+
+  return paths
+}
+
+const { meta, hallazgos } = Astro.props
+
+const SOURCE_META: Record<string, { label: string; color: string }> = {
+  'BOE':                     { label: 'BOE oficial',  color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50' },
+  'Google News (legal)':     { label: 'Sentencia',    color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'   },
+  'Google News':             { label: 'Prensa',        color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'      },
+  'CENDOJ':                  { label: 'Sentencia',    color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'   },
+}
+function fuenteMeta(fuente: string) {
+  if (fuente?.startsWith('Reddit')) return { label: 'Foro', color: 'text-orange-400 bg-orange-950/60 ring-orange-700/50' }
+  return SOURCE_META[fuente] ?? { label: fuente ?? 'Fuente', color: 'text-slate-400 bg-slate-800 ring-slate-700/50' }
+}
+
+const jsonLd = {
+  '@context':        'https://schema.org',
+  '@type':           'CollectionPage',
+  name:              meta.titulo,
+  description:       meta.desc,
+  url:               `${nicho.siteUrl}/casos/${meta.tipo}`,
+  inLanguage:        'es',
+  isPartOf:          { '@type': 'WebSite', url: nicho.siteUrl },
+  numberOfItems:     hallazgos.length,
+  itemListElement:   hallazgos.slice(0, 10).map((h, i) => ({
+    '@type':    'ListItem',
+    position:   i + 1,
+    url:        `${nicho.siteUrl}/hallazgos/${hallazgoSlug(h.titulo ?? '', h.id)}`,
+    name:       h.titulo,
+  })),
+}
+---
+
+<Layout title={`${meta.titulo} · ${nicho.nombre}`} description={meta.desc} {jsonLd}>
+
+  <!-- NAV -->
+  <nav class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
+      <a href="/" class="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        {nicho.nombre}
+      </a>
+      <span class="text-slate-700">/</span>
+      <span class="text-slate-500 text-sm">{meta.titulo.split(' ').slice(0, 2).join(' ')}</span>
+    </div>
+  </nav>
+
+  <!-- HEADER -->
+  <header class="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/60">
+    <div class="max-w-4xl mx-auto px-4 py-10">
+      <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-3">
+        {nicho.tagline}
+      </p>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-50 leading-tight mb-3">
+        {meta.titulo}
+      </h1>
+      <p class="text-slate-400 text-sm max-w-2xl">
+        {meta.intro}
+      </p>
+      <p class="text-xs text-slate-600 mt-3">
+        {hallazgos.length} señale{hallazgos.length !== 1 ? 's' : ''} detectada{hallazgos.length !== 1 ? 's' : ''} · fuentes públicas
+      </p>
+    </div>
+  </header>
+
+  <!-- LISTADO -->
+  <main class="max-w-4xl mx-auto px-4 py-10">
+
+    {hallazgos.length === 0 && (
+      <p class="text-slate-500 text-sm py-10 text-center">
+        No hay señales detectadas para esta categoría todavía.
+      </p>
+    )}
+
+    <ol class="space-y-4">
+      {hallazgos.map(h => {
+        const fm    = fuenteMeta(h.fuente)
+        const fecha = h.fecha
+          ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+          : null
+        const slug  = hallazgoSlug(h.titulo ?? '', h.id)
+        return (
+          <li class="rounded-xl border border-slate-800 bg-slate-900/50 p-5 hover:border-slate-700 transition-colors">
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+              <span class={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${fm.color}`}>
+                {fm.label}
+              </span>
+              {fecha && <time class="text-xs text-slate-500 ml-auto">{fecha}</time>}
+            </div>
+            <a
+              href={`/hallazgos/${slug}`}
+              class="block text-sm font-semibold text-slate-100 leading-snug mb-1 hover:text-amber-400 transition-colors"
+            >
+              {h.titulo}
+            </a>
+            {h.descripcion && (
+              <p class="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                {h.descripcion.slice(0, 200)}
+              </p>
+            )}
+          </li>
+        )
+      })}
+    </ol>
+
+    <!-- CTA -->
+    <div class="mt-12 rounded-xl border border-slate-800 bg-slate-900/50 px-6 py-5">
+      <p class="text-sm font-semibold text-slate-300 mb-1">
+        ¿Tienes un caso similar?
+      </p>
+      <p class="text-xs text-slate-500 mb-3">
+        Consulta el buscador completo o contacta con un especialista en contencioso-administrativo.
+      </p>
+      <div class="flex flex-wrap gap-4">
+        <a
+          href="/"
+          class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+        >
+          Buscar en el observatorio
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
+        </a>
+        <a
+          href={`mailto:contacto@${new URL(nicho.siteUrl).hostname}?subject=Consulta%20legal%20oposici%C3%B3n%20bombero`}
+          class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-300 transition-colors"
+        >
+          Consulta legal gratuita →
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/60 mt-10">
+    <div class="max-w-4xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-600">
+      <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
+      <nav class="flex gap-4">
+        <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>
+        <a href="/politica-privacidad" class="hover:text-slate-400 transition-colors">Privacidad</a>
+        <a href="/politica-cookies"    class="hover:text-slate-400 transition-colors">Cookies</a>
+      </nav>
+    </div>
+  </footer>
+
+</Layout>

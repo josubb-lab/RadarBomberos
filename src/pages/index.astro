@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro'
 import { createClient } from '@supabase/supabase-js'
 import { hallazgoSlug } from '../lib/slugify'
 import { nicho, nichoId } from '../lib/nicho'
+import { incidencias } from '../data/incidencias'
 
 const supabase = createClient(
   import.meta.env.PUBLIC_SUPABASE_URL,
@@ -16,17 +17,37 @@ const { data: hallazgos, error } = await supabase
   .order('fecha', { ascending: false, nullsFirst: false })
   .limit(500)
 
-const total = hallazgos?.length ?? 0
+// Stats por tipo para la stats bar (query ligera: solo campo tipo)
+const { data: statsData } = await supabase
+  .from('hallazgos')
+  .select('tipo')
+  .eq('nicho', nichoId)
+  .in('tipo', ['sentencia', 'impugnacion', 'correccion_bases'])
+
+const total              = hallazgos?.length ?? 0
+const statsSentencias    = statsData?.filter(r => r.tipo === 'sentencia').length       ?? 0
+const statsImpugnaciones = statsData?.filter(r => r.tipo === 'impugnacion').length     ?? 0
+const statsBOE           = statsData?.filter(r => r.tipo === 'correccion_bases').length ?? 0
 
 const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {
   'BOE':                     { label: 'Boletín oficial', icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50'    },
   'CENDOJ':                  { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'      },
   'CENDOJ (vía DuckDuckGo)': { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'      },
   'Google News':             { label: 'Prensa',           icon: '📰',  color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'         },
+  'Google News (legal)':     { label: 'Sentencia',        icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'      },
 }
 function sourceMeta(fuente: string) {
   if (fuente.startsWith('Reddit')) return { label: 'Foro', icon: '💬', color: 'text-orange-400 bg-orange-950/60 ring-orange-700/50' }
   return SOURCE_META[fuente] ?? { label: fuente ?? 'Fuente', icon: '🔗', color: 'text-slate-400 bg-slate-800 ring-slate-700/50' }
+}
+
+const TIPO_INCIDENCIA: Record<string, string> = {
+  sentencia:        'Sentencia',
+  impugnacion:      'Impugnación',
+  anulacion:        'Anulación',
+  correccion_convocatoria: 'Corrección',
+  recurso:          'Recurso',
+  pregunta_anulada: 'Pregunta anulada',
 }
 
 const serialized = JSON.stringify(
@@ -49,11 +70,7 @@ const jsonLd = {
   url: nicho.siteUrl,
   description: nicho.seoDesc,
   inLanguage: 'es',
-  publisher: {
-    '@type': 'Organization',
-    name: nicho.nombre,
-    url: nicho.siteUrl,
-  },
+  publisher: { '@type': 'Organization', name: nicho.nombre, url: nicho.siteUrl },
 }
 ---
 
@@ -66,26 +83,122 @@ const jsonLd = {
         <span class="text-amber-500 text-lg">⬡</span>
         {nicho.nombre}
       </a>
-      <a href="/origen-datos" class="text-xs text-slate-500 hover:text-slate-300 transition-colors hidden sm:block">
-        Fuentes de datos
-      </a>
+      <div class="flex items-center gap-5 text-xs text-slate-500">
+        <a href="/incidencias" class="hover:text-slate-300 transition-colors hidden sm:block">Casos verificados</a>
+        <a href="/origen-datos" class="hover:text-slate-300 transition-colors hidden sm:block">Fuentes</a>
+      </div>
     </div>
   </nav>
 
   <!-- HERO -->
   <section class="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/60">
-    <div class="max-w-4xl mx-auto px-4 py-14 lg:py-20 text-center">
+    <div class="max-w-4xl mx-auto px-4 py-12 lg:py-16 text-center">
       <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-4">
         {nicho.tagline}
       </p>
       <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-50 leading-tight mb-4">
         {nicho.heroTitulo}
       </h1>
-      <p class="text-slate-400 text-base sm:text-lg max-w-xl mx-auto mb-10">
+      <p class="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
         {nicho.heroDesc}
       </p>
+    </div>
+  </section>
 
-      <div class="relative max-w-xl mx-auto">
+  <!-- STATS BAR -->
+  <section class="border-b border-slate-800/60 bg-slate-900/40">
+    <div class="max-w-4xl mx-auto px-4 py-6">
+      <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+        <div>
+          <dt class="text-xs text-slate-500 mb-1">Señales detectadas</dt>
+          <dd class="text-2xl font-extrabold text-slate-100">{total}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-slate-500 mb-1">Sentencias</dt>
+          <dd class="text-2xl font-extrabold text-rose-400">{statsSentencias}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-slate-500 mb-1">Impugnaciones</dt>
+          <dd class="text-2xl font-extrabold text-amber-400">{statsImpugnaciones}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-slate-500 mb-1">Publicaciones BOE</dt>
+          <dd class="text-2xl font-extrabold text-sky-400">{statsBOE}</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- CASOS VERIFICADOS -->
+  <section class="border-b border-slate-800/60 bg-slate-950">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-200">Casos verificados</h2>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Incidencias con documentación oficial contrastada
+          </p>
+        </div>
+        <a href="/incidencias" class="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap">
+          Ver todos →
+        </a>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        {incidencias.slice(0, 4).map(inc => (
+          <a
+            href={`/incidencias/${inc.slug}`}
+            class="rounded-lg border border-slate-800 bg-slate-900/60 p-4 hover:border-slate-700 transition-colors block"
+          >
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 text-amber-400 bg-amber-950/60 ring-amber-700/50">
+                {TIPO_INCIDENCIA[inc.tipo] ?? inc.tipo}
+              </span>
+              <time class="text-xs text-slate-600 ml-auto">{inc.fecha.slice(0, 4)}</time>
+            </div>
+            <p class="text-sm font-medium text-slate-200 leading-snug line-clamp-2">{inc.titulo}</p>
+            <p class="text-xs text-slate-500 mt-1">{inc.organismo} · {inc.ubicacion}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- NAVEGACIÓN POR TIPOS -->
+  <section class="border-b border-slate-800/60 bg-slate-950">
+    <div class="max-w-4xl mx-auto px-4 py-6">
+      <p class="text-xs text-slate-500 mb-4">Explorar por tipo de señal</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <a href="/casos/sentencias"
+           class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-rose-800/60 hover:bg-rose-950/20 transition-colors text-center">
+          <p class="text-sm font-semibold text-slate-200">Sentencias</p>
+          <p class="text-xs text-slate-500 mt-0.5">{statsSentencias} señales</p>
+        </a>
+        <a href="/casos/impugnaciones"
+           class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-amber-800/60 hover:bg-amber-950/20 transition-colors text-center">
+          <p class="text-sm font-semibold text-slate-200">Impugnaciones</p>
+          <p class="text-xs text-slate-500 mt-0.5">{statsImpugnaciones} señales</p>
+        </a>
+        <a href="/casos/anulaciones"
+           class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-slate-700 transition-colors text-center">
+          <p class="text-sm font-semibold text-slate-200">Anulaciones</p>
+          <p class="text-xs text-slate-500 mt-0.5">señales detectadas</p>
+        </a>
+        <a href="/casos/correcciones-boe"
+           class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-sky-800/60 hover:bg-sky-950/20 transition-colors text-center">
+          <p class="text-sm font-semibold text-slate-200">BOE oficial</p>
+          <p class="text-xs text-slate-500 mt-0.5">{statsBOE} señales</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- BUSCADOR + SEÑALES RECIENTES -->
+  <main class="max-w-4xl mx-auto px-4 py-10">
+
+    <!-- Buscador -->
+    <div class="mb-8">
+      <p class="text-xs text-slate-500 mb-3">Buscar en el observatorio</p>
+      <div class="relative max-w-xl">
         <button
           id="search-btn"
           type="button"
@@ -107,15 +220,10 @@ const jsonLd = {
                  transition shadow-lg shadow-black/30"
         />
       </div>
-
-      <p id="search-stats" class="mt-4 text-xs text-slate-600">
-        {total} señales registradas
+      <p id="search-stats" class="mt-2 text-xs text-slate-600">
+        {total} señales detectadas en fuentes públicas
       </p>
     </div>
-  </section>
-
-  <!-- RESULTADOS -->
-  <main class="max-w-4xl mx-auto px-4 py-10">
 
     {error && (
       <div class="mb-6 rounded-lg bg-rose-950/60 border border-rose-800/60 px-4 py-3 text-rose-300 text-sm">
@@ -171,6 +279,7 @@ const jsonLd = {
 
     <ol id="results-list" class="hidden space-y-4"></ol>
 
+    <!-- CTA opositores (ids intactos para el JS) -->
     <div id="cta-abogado" class="hidden mt-10 rounded-xl border border-amber-800/40 bg-amber-950/30 px-6 py-5">
       <p class="text-sm font-semibold text-amber-300 mb-1">¿Estás afrontando una irregularidad?</p>
       <p class="text-xs text-slate-400 mb-3">
@@ -188,6 +297,25 @@ const jsonLd = {
       </a>
     </div>
 
+    <!-- CTA B2B (bloque separado, siempre visible) -->
+    <div class="mt-6 rounded-xl border border-slate-700/50 bg-slate-900/40 px-6 py-5">
+      <p class="text-sm font-semibold text-slate-300 mb-1">
+        ¿Eres abogado, sindicato o academia?
+      </p>
+      <p class="text-xs text-slate-500 mb-3">
+        Accede al informe semanal de señales jurídicas en formato CSV o resumen ejecutivo.
+      </p>
+      <a
+        href={`mailto:contacto@${new URL(nicho.siteUrl).hostname}?subject=Acceso%20informe%20profesional%20Radar%20Bomberos`}
+        class="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+      >
+        Solicitar acceso profesional
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+    </div>
+
   </main>
 
   <!-- FOOTER -->
@@ -195,6 +323,7 @@ const jsonLd = {
     <div class="max-w-4xl mx-auto px-4 py-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-600">
       <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
       <nav class="flex flex-wrap gap-x-4 gap-y-1 justify-center">
+        <a href="/incidencias"         class="hover:text-slate-400 transition-colors">Casos verificados</a>
         <a href="/origen-datos"        class="hover:text-slate-400 transition-colors">Fuentes</a>
         <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>
         <a href="/politica-privacidad" class="hover:text-slate-400 transition-colors">Privacidad</a>
@@ -219,13 +348,16 @@ const jsonLd = {
     'CENDOJ':                  'text-rose-400 bg-rose-950/60 ring-rose-700/50',
     'CENDOJ (vía DuckDuckGo)': 'text-rose-400 bg-rose-950/60 ring-rose-700/50',
     'Google News':             'text-sky-400 bg-sky-950/60 ring-sky-700/50',
+    'Google News (legal)':     'text-rose-400 bg-rose-950/60 ring-rose-700/50',
   }
   const SOURCE_ICON: Record<string,string> = {
-    'BOE': '📋', 'CENDOJ': '⚖️', 'CENDOJ (vía DuckDuckGo)': '⚖️', 'Google News': '📰',
+    'BOE': '📋', 'CENDOJ': '⚖️', 'CENDOJ (vía DuckDuckGo)': '⚖️',
+    'Google News': '📰', 'Google News (legal)': '⚖️',
   }
   const SOURCE_LABEL: Record<string,string> = {
     'BOE': 'Boletín oficial', 'CENDOJ': 'Sentencia',
     'CENDOJ (vía DuckDuckGo)': 'Sentencia', 'Google News': 'Prensa',
+    'Google News (legal)': 'Sentencia',
   }
 
   function getSourceMeta(fuente: string) {
@@ -315,7 +447,7 @@ const jsonLd = {
       emptyResults.classList.add('hidden')
       resultsList.classList.add('hidden')
       ctaAbogado.classList.add('hidden')
-      stats.textContent = `${HALLAZGOS.length} señales registradas`
+      stats.textContent = `${HALLAZGOS.length} señales detectadas en fuentes públicas`
       return
     }
 
@@ -329,7 +461,7 @@ const jsonLd = {
     })
 
     stats.textContent = matches.length === HALLAZGOS.length
-      ? `${HALLAZGOS.length} señales registradas`
+      ? `${HALLAZGOS.length} señales detectadas en fuentes públicas`
       : `${matches.length} resultado${matches.length !== 1 ? 's' : ''} para "${raw.trim()}"`
 
     mostrar(matches, raw.trim())
