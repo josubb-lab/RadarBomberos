@@ -31,22 +31,6 @@ const statsSentencias    = statsData?.filter(r => r.tipo === 'sentencia').length
 const statsImpugnaciones = statsData?.filter(r => r.tipo === 'impugnacion').length ?? 0
 const statsAnulaciones   = statsData?.filter(r => r.tipo === 'anulacion').length   ?? 0
 
-const { data: procesosDestacados = [] } = await supabase
-  .from('procesos_selectivos')
-  .select('slug, organismo, provincia, municipio, cuerpo, plazas, estado, senales_proceso(id)')
-  .eq('nicho', 'bomberos')
-  .neq('estado', 'cerrado')
-  .order('updated_at', { ascending: false })
-  .limit(3)
-
-const ESTADO_META: Record<string, { label: string; color: string }> = {
-  abierto:    { label: 'Abierto',    color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'      },
-  activo:     { label: 'Activo',     color: 'text-slate-300 bg-slate-800/80 ring-slate-700/50' },
-  impugnado:  { label: 'Impugnado',  color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50' },
-  suspendido: { label: 'Suspendido', color: 'text-slate-400 bg-slate-800/60 ring-slate-600/50' },
-  cerrado:    { label: 'Cerrado',    color: 'text-slate-500 bg-slate-800/40 ring-slate-700/40' },
-  anulado:    { label: 'Anulado',    color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'    },
-}
 
 const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {
   'BOE':                     { label: 'Boletín oficial', icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50' },
@@ -108,7 +92,7 @@ const jsonLd = {
         {nicho.nombre}
       </a>
       <div class="flex items-center gap-5 text-xs text-slate-500">
-        <a href="/procesos"     class="hover:text-slate-300 transition-colors hidden sm:block">Oposiciones</a>
+        <a href="/oposiciones"  class="hover:text-slate-300 transition-colors hidden sm:block">Oposiciones</a>
         <a href="/incidencias"  class="hover:text-slate-300 transition-colors hidden sm:block">Observatorio</a>
         <a href="/origen-datos" class="hover:text-slate-300 transition-colors hidden sm:block">Fuentes</a>
       </div>
@@ -136,7 +120,7 @@ const jsonLd = {
       <div class="grid sm:grid-cols-2 gap-4">
 
         <!-- Línea 1: Oposiciones -->
-        <a href="/procesos"
+        <a href="/oposiciones"
            class="group rounded-xl border border-slate-700 bg-slate-900/60 p-6
                   hover:border-sky-700/60 hover:bg-sky-950/20 transition-colors block">
           <div class="flex items-center gap-3 mb-3">
@@ -146,15 +130,15 @@ const jsonLd = {
             </h2>
           </div>
           <p class="text-sm text-slate-400 mb-4 leading-relaxed">
-            Procesos activos, convocatorias publicadas, plazas y fechas de instancias.
+            Guía de los 20 cuerpos de bomberos más importantes. Requisitos, temario y alertas de convocatoria.
           </p>
           <ul class="text-xs text-slate-500 space-y-1.5 mb-5">
-            <li>· Procesos abiertos y activos</li>
-            <li>· Convocatorias verificadas en BOE</li>
-            <li>· Procesos con señales jurídicas asociadas</li>
+            <li>· Requisitos de acceso por cuerpo</li>
+            <li>· Fases del proceso selectivo</li>
+            <li>· Alerta cuando convoquen en tu ciudad</li>
           </ul>
           <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-400 group-hover:text-sky-300 transition-colors">
-            Ver procesos selectivos
+            Ver oposiciones por ciudad
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
             </svg>
@@ -249,49 +233,6 @@ const jsonLd = {
 
   <!-- CONTENIDO POR DEFECTO (oculto durante búsqueda activa) -->
   <div id="content-default">
-
-    <!-- PROCESOS SELECTIVOS -->
-    <section class="border-b border-slate-800/60 bg-slate-950">
-      <div class="max-w-4xl mx-auto px-4 py-8">
-        <div class="flex items-center justify-between mb-5">
-          <div>
-            <h2 class="text-sm font-semibold text-slate-200">Procesos selectivos</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Convocatorias documentadas con fuentes públicas</p>
-          </div>
-          <a href="/procesos" class="text-xs font-medium text-sky-400 hover:text-sky-300 transition-colors whitespace-nowrap">
-            Ver todos →
-          </a>
-        </div>
-        <div class="space-y-2">
-          {procesosDestacados.map(p => {
-            const em         = ESTADO_META[p.estado] ?? { label: p.estado, color: 'text-slate-400 bg-slate-800 ring-slate-700/50' }
-            const lugar      = [p.municipio, p.provincia].filter(Boolean).join(', ')
-            const tieneSenales = (p.senales_proceso?.length ?? 0) > 0
-            return (
-              <a
-                href={`/procesos/${p.slug}`}
-                class="flex flex-wrap sm:flex-nowrap items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3 hover:border-slate-700 transition-colors"
-              >
-                <span class={`shrink-0 inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${em.color}`}>
-                  {em.label}
-                </span>
-                <span class="text-sm font-medium text-slate-200 min-w-0 flex-1 leading-snug">
-                  {p.organismo}
-                </span>
-                <span class="text-xs text-slate-500 shrink-0">
-                  {p.cuerpo}{p.plazas ? ` · ${p.plazas} plazas` : ''}{lugar ? ` · ${lugar}` : ''}
-                </span>
-                {tieneSenales && (
-                  <span class="shrink-0 inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 text-slate-400 bg-slate-800/60 ring-slate-700/50">
-                    Con señales
-                  </span>
-                )}
-              </a>
-            )
-          })}
-        </div>
-      </div>
-    </section>
 
     <!-- OBSERVATORIO JURÍDICO -->
     <section class="border-b border-slate-800/60 bg-slate-950">
@@ -421,7 +362,7 @@ const jsonLd = {
     <div class="max-w-4xl mx-auto px-4 py-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-600">
       <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
       <nav class="flex flex-wrap gap-x-4 gap-y-1 justify-center">
-        <a href="/procesos"            class="hover:text-slate-400 transition-colors">Oposiciones</a>
+        <a href="/oposiciones"          class="hover:text-slate-400 transition-colors">Oposiciones</a>
         <a href="/incidencias"         class="hover:text-slate-400 transition-colors">Observatorio</a>
         <a href="/origen-datos"        class="hover:text-slate-400 transition-colors">Fuentes</a>
         <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>

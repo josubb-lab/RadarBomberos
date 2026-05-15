@@ -1,0 +1,67 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import { nicho } from '../../lib/nicho'
+---
+
+<Layout
+  title="Alerta registrada — Oposiciones a Bombero"
+  description="Recibirás un aviso cuando se convoquen plazas en tu ciudad."
+  canonical={`${nicho.siteUrl}/oposiciones/gracias`}
+  noindex={true}
+>
+
+  <nav class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
+      <a href="/oposiciones" class="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Oposiciones
+      </a>
+    </div>
+  </nav>
+
+  <main class="max-w-lg mx-auto px-4 py-24 text-center">
+    <div class="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-6">
+      <svg class="w-7 h-7 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+    <h1 class="text-2xl font-extrabold text-slate-50 mb-3">Contacto recibido</h1>
+    <p class="text-slate-400 text-sm leading-relaxed mb-8">
+      Gracias. Si publicamos novedades sobre el cuerpo que te interesa, te lo haremos saber.
+    </p>
+
+    <!-- BOE alerta -->
+    <div class="rounded-xl border border-amber-700/30 bg-amber-950/20 px-5 py-5 mb-8 text-left">
+      <p class="text-xs font-semibold text-amber-400 mb-1">Para alertas en tiempo real: usa el BOE</p>
+      <p class="text-xs text-slate-500 leading-relaxed mb-4">
+        El buscador del BOE tiene un sistema de alertas gratuito. Cuando se publique una nueva convocatoria de bombero, recibirás un email automático directamente de la fuente oficial.
+      </p>
+      <a
+        href="https://www.boe.es/buscar/alertas_boe.php"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+      >
+        Configurar alerta gratuita en el BOE →
+      </a>
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <a
+        href="/oposiciones"
+        class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-300 hover:border-slate-600 hover:text-slate-100 transition-colors"
+      >
+        Ver más oposiciones
+      </a>
+      <a
+        href="/"
+        class="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition-colors"
+      >
+        Ir al observatorio
+      </a>
+    </div>
+  </main>
+
+</Layout>
