@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { hallazgoSlug } from '../lib/slugify'
 import { nicho, nichoId } from '../lib/nicho'
 import { incidencias } from '../data/incidencias'
+import { procesos } from '../data/procesos'
 
 const supabase = createClient(
   import.meta.env.PUBLIC_SUPABASE_URL,
@@ -86,6 +87,7 @@ const jsonLd = {
         {nicho.nombre}
       </a>
       <div class="flex items-center gap-5 text-xs text-slate-500">
+        <a href="/procesos"    class="hover:text-slate-300 transition-colors hidden sm:block">Procesos selectivos</a>
         <a href="/incidencias" class="hover:text-slate-300 transition-colors hidden sm:block">Casos verificados</a>
         <a href="/origen-datos" class="hover:text-slate-300 transition-colors hidden sm:block">Fuentes</a>
       </div>
@@ -184,6 +186,11 @@ const jsonLd = {
            class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-slate-700 transition-colors text-center">
           <p class="text-sm font-semibold text-slate-200">Anulaciones</p>
           <p class="text-xs text-slate-500 mt-0.5">{statsAnulaciones} señales</p>
+        </a>
+        <a href="/procesos"
+           class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-sky-800/60 hover:bg-sky-950/20 transition-colors text-center">
+          <p class="text-sm font-semibold text-slate-200">Procesos selectivos</p>
+          <p class="text-xs text-slate-500 mt-0.5">{procesos.length} documentados</p>
         </a>
       </div>
     </div>
@@ -320,6 +327,7 @@ const jsonLd = {
     <div class="max-w-4xl mx-auto px-4 py-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-600">
       <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
       <nav class="flex flex-wrap gap-x-4 gap-y-1 justify-center">
+        <a href="/procesos"            class="hover:text-slate-400 transition-colors">Procesos selectivos</a>
         <a href="/incidencias"         class="hover:text-slate-400 transition-colors">Casos verificados</a>
         <a href="/origen-datos"        class="hover:text-slate-400 transition-colors">Fuentes</a>
         <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>

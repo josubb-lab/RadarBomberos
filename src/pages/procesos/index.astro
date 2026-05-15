@@ -1,0 +1,130 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import { nicho } from '../../lib/nicho'
+import { procesos } from '../../data/procesos'
+import type { EstadoProceso } from '../../data/procesos'
+
+const pageTitle = `Procesos selectivos de bomberos — ${nicho.nombre}`
+const pageDesc  = 'Procesos selectivos de bomberos con convocatorias, documentación pública y señales asociadas.'
+
+const ESTADO_META: Record<EstadoProceso, { label: string; color: string }> = {
+  abierto:    { label: 'Abierto',    color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'     },
+  activo:     { label: 'Activo',     color: 'text-slate-300 bg-slate-800/80 ring-slate-700/50' },
+  impugnado:  { label: 'Impugnado',  color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50' },
+  suspendido: { label: 'Suspendido', color: 'text-slate-400 bg-slate-800/60 ring-slate-600/50' },
+  cerrado:    { label: 'Cerrado',    color: 'text-slate-500 bg-slate-800/40 ring-slate-700/40' },
+  anulado:    { label: 'Anulado',    color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'   },
+}
+
+const jsonLd = {
+  '@context':    'https://schema.org',
+  '@type':       'CollectionPage',
+  name:          pageTitle,
+  description:   pageDesc,
+  url:           `${nicho.siteUrl}/procesos`,
+  inLanguage:    'es',
+  isPartOf:      { '@type': 'WebSite', url: nicho.siteUrl },
+  numberOfItems: procesos.length,
+}
+---
+
+<Layout title={pageTitle} description={pageDesc} {jsonLd} canonical={`${nicho.siteUrl}/procesos`}>
+
+  <!-- NAV -->
+  <nav class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
+      <a href="/" class="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        {nicho.nombre}
+      </a>
+      <span class="text-slate-700">/</span>
+      <span class="text-slate-500 text-sm">Procesos selectivos</span>
+    </div>
+  </nav>
+
+  <!-- HEADER -->
+  <header class="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/60">
+    <div class="max-w-4xl mx-auto px-4 py-10">
+      <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-3">
+        {nicho.tagline}
+      </p>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-50 leading-tight mb-3">
+        Procesos selectivos de bomberos
+      </h1>
+      <p class="text-slate-400 text-sm max-w-2xl">
+        Procesos selectivos de bomberos con convocatorias, documentación pública y señales asociadas.
+      </p>
+      <p class="text-xs text-slate-600 mt-3">
+        {procesos.length} proceso{procesos.length !== 1 ? 's' : ''} documentado{procesos.length !== 1 ? 's' : ''} · fuentes públicas
+      </p>
+    </div>
+  </header>
+
+  <!-- LISTADO -->
+  <main class="max-w-4xl mx-auto px-4 py-10">
+    <ol class="space-y-4">
+      {procesos.map(p => {
+        const em    = ESTADO_META[p.estado]
+        const lugar = [p.municipio, p.provincia].filter(Boolean).join(', ')
+        return (
+          <li>
+            <a
+              href={`/procesos/${p.slug}`}
+              class="block rounded-xl border border-slate-800 bg-slate-900/50 p-5 hover:border-slate-700 transition-colors"
+            >
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <span class={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${em.color}`}>
+                  {em.label}
+                </span>
+                {p.tieneSenales && (
+                  <span class="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 text-slate-400 bg-slate-800/60 ring-slate-700/50">
+                    Con señales
+                  </span>
+                )}
+                {lugar && <span class="text-xs text-slate-600 ml-auto">{lugar}</span>}
+              </div>
+              <p class="text-sm font-semibold text-slate-100 leading-snug mb-1">
+                {p.organismo}
+              </p>
+              <p class="text-xs text-slate-500 leading-relaxed">
+                {p.cuerpo}{p.plazas ? ` · ${p.plazas} plazas` : ''}{p.fechaPublicacion ? ` · ${p.fechaPublicacion.slice(0, 4)}` : ''}
+              </p>
+            </a>
+          </li>
+        )
+      })}
+    </ol>
+
+    <!-- CTA -->
+    <div class="mt-12 rounded-xl border border-slate-800 bg-slate-900/50 px-6 py-5">
+      <p class="text-sm font-semibold text-slate-300 mb-1">¿Conoces un proceso que debería estar aquí?</p>
+      <p class="text-xs text-slate-500 mb-3">
+        Si tienes documentación pública sobre una convocatoria o señal no recogida, puedes comunicárnoslo.
+      </p>
+      <a
+        href="/contacto"
+        class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+      >
+        Contactar
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/60 mt-10">
+    <div class="max-w-4xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-600">
+      <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
+      <nav class="flex gap-4">
+        <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>
+        <a href="/politica-privacidad" class="hover:text-slate-400 transition-colors">Privacidad</a>
+        <a href="/politica-cookies"    class="hover:text-slate-400 transition-colors">Cookies</a>
+      </nav>
+    </div>
+  </footer>
+
+</Layout>
