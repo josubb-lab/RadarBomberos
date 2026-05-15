@@ -14,8 +14,9 @@ const supabase = createClient(
 
 const { data: hallazgos, error } = await supabase
   .from('hallazgos')
-  .select('id, titulo, descripcion, fuente, fecha, url')
+  .select('id, titulo, descripcion, fuente, fecha, url, tipo')
   .eq('nicho', nichoId)
+  .gte('relevancia', 2)
   .or('fecha.gte.2020-01-01,curado.eq.true')
   .order('fecha', { ascending: false, nullsFirst: false })
   .limit(500)
@@ -75,7 +76,12 @@ const serialized = JSON.stringify(
   }))
 )
 
-const recientes = (hallazgos ?? []).slice(0, 20)
+const TIPOS_JURIDICOS = new Set([
+  'sentencia', 'impugnacion', 'anulacion', 'suspension', 'medida_cautelar', 'recurso', 'correccion_bases',
+])
+const recientes = (hallazgos ?? [])
+  .filter(h => TIPOS_JURIDICOS.has(h.tipo ?? ''))
+  .slice(0, 20)
 
 const jsonLd = {
   '@context': 'https://schema.org',
