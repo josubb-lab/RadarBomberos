@@ -5,6 +5,7 @@ import { hallazgoSlug } from '../lib/slugify'
 import { nicho, nichoId } from '../lib/nicho'
 import { incidencias } from '../data/incidencias'
 import { procesos } from '../data/procesos'
+import type { EstadoProceso } from '../data/procesos'
 
 const supabase = createClient(
   import.meta.env.PUBLIC_SUPABASE_URL,
@@ -19,7 +20,6 @@ const { data: hallazgos, error } = await supabase
   .order('fecha', { ascending: false, nullsFirst: false })
   .limit(500)
 
-// Stats por tipo para la stats bar (query ligera: solo campo tipo)
 const { data: statsData } = await supabase
   .from('hallazgos')
   .select('tipo')
@@ -32,12 +32,23 @@ const statsSentencias    = statsData?.filter(r => r.tipo === 'sentencia').length
 const statsImpugnaciones = statsData?.filter(r => r.tipo === 'impugnacion').length ?? 0
 const statsAnulaciones   = statsData?.filter(r => r.tipo === 'anulacion').length   ?? 0
 
+const procesosDestacados = procesos.filter(p => p.estado !== 'cerrado').slice(0, 3)
+
+const ESTADO_META: Record<EstadoProceso, { label: string; color: string }> = {
+  abierto:    { label: 'Abierto',    color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'      },
+  activo:     { label: 'Activo',     color: 'text-slate-300 bg-slate-800/80 ring-slate-700/50' },
+  impugnado:  { label: 'Impugnado',  color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50' },
+  suspendido: { label: 'Suspendido', color: 'text-slate-400 bg-slate-800/60 ring-slate-600/50' },
+  cerrado:    { label: 'Cerrado',    color: 'text-slate-500 bg-slate-800/40 ring-slate-700/40' },
+  anulado:    { label: 'Anulado',    color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'    },
+}
+
 const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {
-  'BOE':                     { label: 'Boletín oficial', icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50'    },
-  'CENDOJ':                  { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'      },
-  'CENDOJ (vía DuckDuckGo)': { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'      },
-  'Google News':             { label: 'Prensa',           icon: '📰',  color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'         },
-  'Google News (legal)':     { label: 'Sentencia',        icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'      },
+  'BOE':                     { label: 'Boletín oficial', icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50' },
+  'CENDOJ':                  { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'  },
+  'CENDOJ (vía DuckDuckGo)': { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'  },
+  'Google News':             { label: 'Prensa',           icon: '📰',  color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'     },
+  'Google News (legal)':     { label: 'Sentencia',        icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'  },
 }
 function sourceMeta(fuente: string) {
   if (fuente.startsWith('Reddit')) return { label: 'Foro', icon: '💬', color: 'text-orange-400 bg-orange-950/60 ring-orange-700/50' }
@@ -45,12 +56,12 @@ function sourceMeta(fuente: string) {
 }
 
 const TIPO_INCIDENCIA: Record<string, string> = {
-  sentencia:        'Sentencia',
-  impugnacion:      'Impugnación',
-  anulacion:        'Anulación',
+  sentencia:               'Sentencia',
+  impugnacion:             'Impugnación',
+  anulacion:               'Anulación',
   correccion_convocatoria: 'Corrección',
-  recurso:          'Recurso',
-  pregunta_anulada: 'Pregunta anulada',
+  recurso:                 'Recurso',
+  pregunta_anulada:        'Pregunta anulada',
 }
 
 const serialized = JSON.stringify(
@@ -68,12 +79,12 @@ const recientes = (hallazgos ?? []).slice(0, 20)
 
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: nicho.nombre,
-  url: nicho.siteUrl,
+  '@type':    'WebSite',
+  name:        nicho.nombre,
+  url:         nicho.siteUrl,
   description: nicho.seoDesc,
-  inLanguage: 'es',
-  publisher: { '@type': 'Organization', name: nicho.nombre, url: nicho.siteUrl },
+  inLanguage:  'es',
+  publisher:   { '@type': 'Organization', name: nicho.nombre, url: nicho.siteUrl },
 }
 ---
 
@@ -87,8 +98,8 @@ const jsonLd = {
         {nicho.nombre}
       </a>
       <div class="flex items-center gap-5 text-xs text-slate-500">
-        <a href="/procesos"    class="hover:text-slate-300 transition-colors hidden sm:block">Procesos selectivos</a>
-        <a href="/incidencias" class="hover:text-slate-300 transition-colors hidden sm:block">Casos verificados</a>
+        <a href="/procesos"     class="hover:text-slate-300 transition-colors hidden sm:block">Oposiciones</a>
+        <a href="/incidencias"  class="hover:text-slate-300 transition-colors hidden sm:block">Observatorio</a>
         <a href="/origen-datos" class="hover:text-slate-300 transition-colors hidden sm:block">Fuentes</a>
       </div>
     </div>
@@ -96,111 +107,83 @@ const jsonLd = {
 
   <!-- HERO -->
   <section class="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/60">
-    <div class="max-w-4xl mx-auto px-4 py-12 lg:py-16 text-center">
+    <div class="max-w-4xl mx-auto px-4 py-10 lg:py-12 text-center">
       <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-4">
         {nicho.tagline}
       </p>
-      <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-50 leading-tight mb-4">
-        {nicho.heroTitulo}
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-50 leading-tight mb-3">
+        Oposiciones a bombero en España
       </h1>
-      <p class="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
-        {nicho.heroDesc}
+      <p class="text-slate-400 text-base max-w-xl mx-auto">
+        Convocatorias, procesos activos y señales jurídicas documentadas desde fuentes públicas.
       </p>
     </div>
   </section>
 
-  <!-- STATS BAR -->
-  <section class="border-b border-slate-800/60 bg-slate-900/40">
-    <div class="max-w-4xl mx-auto px-4 py-6">
-      <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-        <div>
-          <dt class="text-xs text-slate-500 mb-1">Señales detectadas</dt>
-          <dd class="text-2xl font-extrabold text-slate-100">{total}</dd>
-        </div>
-        <div>
-          <dt class="text-xs text-slate-500 mb-1">Sentencias</dt>
-          <dd class="text-2xl font-extrabold text-rose-400">{statsSentencias}</dd>
-        </div>
-        <div>
-          <dt class="text-xs text-slate-500 mb-1">Impugnaciones</dt>
-          <dd class="text-2xl font-extrabold text-amber-400">{statsImpugnaciones}</dd>
-        </div>
-        <div>
-          <dt class="text-xs text-slate-500 mb-1">Anulaciones</dt>
-          <dd class="text-2xl font-extrabold text-sky-400">{statsAnulaciones}</dd>
-        </div>
-      </dl>
-    </div>
-  </section>
-
-  <!-- CASOS VERIFICADOS -->
+  <!-- DOS ENTRADAS PRINCIPALES -->
   <section class="border-b border-slate-800/60 bg-slate-950">
     <div class="max-w-4xl mx-auto px-4 py-8">
-      <div class="flex items-center justify-between mb-5">
-        <div>
-          <h2 class="text-sm font-semibold text-slate-200">Casos verificados</h2>
-          <p class="text-xs text-slate-500 mt-0.5">
-            Incidencias con documentación oficial contrastada
-          </p>
-        </div>
-        <a href="/incidencias" class="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap">
-          Ver todos →
-        </a>
-      </div>
-      <div class="grid sm:grid-cols-2 gap-3">
-        {incidencias.slice(0, 4).map(inc => (
-          <a
-            href={`/incidencias/${inc.slug}`}
-            class="rounded-lg border border-slate-800 bg-slate-900/60 p-4 hover:border-slate-700 transition-colors block"
-          >
-            <div class="flex items-center gap-2 mb-2">
-              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 text-amber-400 bg-amber-950/60 ring-amber-700/50">
-                {TIPO_INCIDENCIA[inc.tipo] ?? inc.tipo}
-              </span>
-              <time class="text-xs text-slate-600 ml-auto">{inc.fecha.slice(0, 4)}</time>
-            </div>
-            <p class="text-sm font-medium text-slate-200 leading-snug line-clamp-2">{inc.titulo}</p>
-            <p class="text-xs text-slate-500 mt-1">{inc.organismo} · {inc.ubicacion}</p>
-          </a>
-        ))}
-      </div>
-    </div>
-  </section>
+      <div class="grid sm:grid-cols-2 gap-4">
 
-  <!-- NAVEGACIÓN POR TIPOS -->
-  <section class="border-b border-slate-800/60 bg-slate-950">
-    <div class="max-w-4xl mx-auto px-4 py-6">
-      <p class="text-xs text-slate-500 mb-4">Explorar por tipo de señal</p>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <a href="/casos/sentencias"
-           class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-rose-800/60 hover:bg-rose-950/20 transition-colors text-center">
-          <p class="text-sm font-semibold text-slate-200">Sentencias</p>
-          <p class="text-xs text-slate-500 mt-0.5">{statsSentencias} señales</p>
-        </a>
-        <a href="/casos/impugnaciones"
-           class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-amber-800/60 hover:bg-amber-950/20 transition-colors text-center">
-          <p class="text-sm font-semibold text-slate-200">Impugnaciones</p>
-          <p class="text-xs text-slate-500 mt-0.5">{statsImpugnaciones} señales</p>
-        </a>
-        <a href="/casos/anulaciones"
-           class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-slate-700 transition-colors text-center">
-          <p class="text-sm font-semibold text-slate-200">Anulaciones</p>
-          <p class="text-xs text-slate-500 mt-0.5">{statsAnulaciones} señales</p>
-        </a>
+        <!-- Línea 1: Oposiciones -->
         <a href="/procesos"
-           class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-sky-800/60 hover:bg-sky-950/20 transition-colors text-center">
-          <p class="text-sm font-semibold text-slate-200">Procesos selectivos</p>
-          <p class="text-xs text-slate-500 mt-0.5">{procesos.length} documentados</p>
+           class="group rounded-xl border border-slate-700 bg-slate-900/60 p-6
+                  hover:border-sky-700/60 hover:bg-sky-950/20 transition-colors block">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-xl">🗂</span>
+            <h2 class="text-base font-bold text-slate-100 group-hover:text-sky-300 transition-colors">
+              Oposiciones
+            </h2>
+          </div>
+          <p class="text-sm text-slate-400 mb-4 leading-relaxed">
+            Procesos activos, convocatorias publicadas, plazas y fechas de instancias.
+          </p>
+          <ul class="text-xs text-slate-500 space-y-1.5 mb-5">
+            <li>· Procesos abiertos y activos</li>
+            <li>· Convocatorias verificadas en BOE</li>
+            <li>· Procesos con señales jurídicas asociadas</li>
+          </ul>
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-400 group-hover:text-sky-300 transition-colors">
+            Ver procesos selectivos
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+            </svg>
+          </span>
         </a>
+
+        <!-- Línea 2: Observatorio -->
+        <a href="/incidencias"
+           class="group rounded-xl border border-slate-700 bg-slate-900/60 p-6
+                  hover:border-amber-700/60 hover:bg-amber-950/20 transition-colors block">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-xl">⚖️</span>
+            <h2 class="text-base font-bold text-slate-100 group-hover:text-amber-300 transition-colors">
+              Observatorio jurídico
+            </h2>
+          </div>
+          <p class="text-sm text-slate-400 mb-4 leading-relaxed">
+            Sentencias, impugnaciones y anulaciones en oposiciones a bombero.
+          </p>
+          <ul class="text-xs text-slate-500 space-y-1.5 mb-5">
+            <li>· <span class="text-rose-400 font-medium">{statsSentencias}</span> sentencias documentadas</li>
+            <li>· <span class="text-amber-400 font-medium">{statsImpugnaciones}</span> impugnaciones registradas</li>
+            <li>· <span class="text-slate-300 font-medium">{statsAnulaciones}</span> anulaciones verificadas</li>
+          </ul>
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 group-hover:text-amber-300 transition-colors">
+            Ver observatorio jurídico
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+            </svg>
+          </span>
+        </a>
+
       </div>
     </div>
   </section>
 
-  <!-- BUSCADOR + SEÑALES RECIENTES -->
-  <main class="max-w-4xl mx-auto px-4 py-10">
-
-    <!-- Buscador -->
-    <div class="mb-8">
+  <!-- BUSCADOR -->
+  <section class="border-b border-slate-800/60 bg-slate-900/30">
+    <div class="max-w-4xl mx-auto px-4 py-8">
       <p class="text-xs text-slate-500 mb-3">Buscar en el observatorio</p>
       <div class="relative max-w-xl">
         <button
@@ -228,17 +211,139 @@ const jsonLd = {
         {total} señales detectadas en fuentes públicas
       </p>
     </div>
+  </section>
 
-    {error && (
-      <div class="mb-6 rounded-lg bg-rose-950/60 border border-rose-800/60 px-4 py-3 text-rose-300 text-sm">
-        ⚠ No se pudo conectar con la base de datos.
+  <!-- RESULTADOS DE BÚSQUEDA (oculto por defecto) -->
+  <div id="search-results-area" class="hidden max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <div id="empty-results" class="hidden py-16 text-center">
+      <p class="text-sm font-medium text-slate-400">No se encontraron casos para esa búsqueda.</p>
+      <p class="text-xs mt-1 text-slate-600">Prueba con otros términos o consulta a un abogado especialista.</p>
+    </div>
+    <ol id="results-list" class="space-y-4"></ol>
+    <div id="cta-abogado" class="hidden rounded-xl border border-amber-800/40 bg-amber-950/30 px-6 py-5">
+      <p class="text-sm font-semibold text-amber-300 mb-1">¿Estás afrontando un proceso con incidencias?</p>
+      <p class="text-xs text-slate-400 mb-3">
+        Si has encontrado un caso similar al tuyo, un abogado especialista en contencioso-administrativo puede orientarte.
+      </p>
+      <a
+        href={`mailto:josue@benchdatalab.com?subject=Consulta%20legal%20oposici%C3%B3n%20${encodeURIComponent(nicho.colectivo)}`}
+        class="inline-flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+      >
+        Solicitar información
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- CONTENIDO POR DEFECTO (oculto durante búsqueda activa) -->
+  <div id="content-default">
+
+    <!-- PROCESOS SELECTIVOS -->
+    <section class="border-b border-slate-800/60 bg-slate-950">
+      <div class="max-w-4xl mx-auto px-4 py-8">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-200">Procesos selectivos</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Convocatorias documentadas con fuentes públicas</p>
+          </div>
+          <a href="/procesos" class="text-xs font-medium text-sky-400 hover:text-sky-300 transition-colors whitespace-nowrap">
+            Ver todos →
+          </a>
+        </div>
+        <div class="space-y-2">
+          {procesosDestacados.map(p => {
+            const em    = ESTADO_META[p.estado]
+            const lugar = [p.municipio, p.provincia].filter(Boolean).join(', ')
+            return (
+              <a
+                href={`/procesos/${p.slug}`}
+                class="flex flex-wrap sm:flex-nowrap items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3 hover:border-slate-700 transition-colors"
+              >
+                <span class={`shrink-0 inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${em.color}`}>
+                  {em.label}
+                </span>
+                <span class="text-sm font-medium text-slate-200 min-w-0 flex-1 leading-snug">
+                  {p.organismo}
+                </span>
+                <span class="text-xs text-slate-500 shrink-0">
+                  {p.cuerpo}{p.plazas ? ` · ${p.plazas} plazas` : ''}{lugar ? ` · ${lugar}` : ''}
+                </span>
+                {p.tieneSenales && (
+                  <span class="shrink-0 inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 text-slate-400 bg-slate-800/60 ring-slate-700/50">
+                    Con señales
+                  </span>
+                )}
+              </a>
+            )
+          })}
+        </div>
       </div>
-    )}
+    </section>
 
-    <!-- Estado inicial -->
-    <div id="empty-initial">
+    <!-- OBSERVATORIO JURÍDICO -->
+    <section class="border-b border-slate-800/60 bg-slate-950">
+      <div class="max-w-4xl mx-auto px-4 py-8">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-200">Observatorio jurídico</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Incidencias con documentación oficial contrastada</p>
+          </div>
+          <a href="/incidencias" class="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap">
+            Ver todos →
+          </a>
+        </div>
+
+        <!-- Stats clicables -->
+        <div class="flex flex-wrap gap-3 mb-6">
+          <a href="/casos/sentencias"
+             class="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 hover:border-rose-800/60 transition-colors">
+            <span class="text-lg font-extrabold text-rose-400 leading-none">{statsSentencias}</span>
+            <span class="text-xs text-slate-500">Sentencias</span>
+          </a>
+          <a href="/casos/impugnaciones"
+             class="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 hover:border-amber-800/60 transition-colors">
+            <span class="text-lg font-extrabold text-amber-400 leading-none">{statsImpugnaciones}</span>
+            <span class="text-xs text-slate-500">Impugnaciones</span>
+          </a>
+          <a href="/casos/anulaciones"
+             class="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 hover:border-slate-700 transition-colors">
+            <span class="text-lg font-extrabold text-slate-300 leading-none">{statsAnulaciones}</span>
+            <span class="text-xs text-slate-500">Anulaciones</span>
+          </a>
+        </div>
+
+        <!-- Incidencias verificadas -->
+        <div class="grid sm:grid-cols-2 gap-3">
+          {incidencias.slice(0, 4).map(inc => (
+            <a
+              href={`/incidencias/${inc.slug}`}
+              class="rounded-lg border border-slate-800 bg-slate-900/60 p-4 hover:border-slate-700 transition-colors block"
+            >
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 text-amber-400 bg-amber-950/60 ring-amber-700/50">
+                  {TIPO_INCIDENCIA[inc.tipo] ?? inc.tipo}
+                </span>
+                <time class="text-xs text-slate-600 ml-auto">{inc.fecha.slice(0, 4)}</time>
+              </div>
+              <p class="text-sm font-medium text-slate-200 leading-snug line-clamp-2">{inc.titulo}</p>
+              <p class="text-xs text-slate-500 mt-1">{inc.organismo} · {inc.ubicacion}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- SEÑALES RECIENTES + SUGERENCIAS -->
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      {error && (
+        <div class="mb-6 rounded-lg bg-rose-950/60 border border-rose-800/60 px-4 py-3 text-rose-300 text-sm">
+          ⚠ No se pudo conectar con la base de datos.
+        </div>
+      )}
       <p class="text-xs text-slate-500 mb-3">Búsquedas frecuentes:</p>
-      <div class="flex flex-wrap gap-2 mb-10">
+      <div class="flex flex-wrap gap-2 mb-8">
         {nicho.sugerencias.map(tag => (
           <button class="suggestion text-xs px-3 py-1.5 rounded-full border border-slate-700 text-slate-400
                          hover:border-amber-600 hover:text-amber-400 transition-colors bg-slate-900">
@@ -247,7 +352,7 @@ const jsonLd = {
         ))}
       </div>
 
-      <p class="text-xs text-slate-500 mb-3">Últimas señales detectadas:</p>
+      <p class="text-xs text-slate-500 mb-3">Señales recientes:</p>
       <ol class="space-y-4">
         {recientes.map(h => {
           const sm = sourceMeta(h.fuente)
@@ -262,7 +367,8 @@ const jsonLd = {
                 </span>
                 {fecha && <time class="text-xs text-slate-500 ml-auto">{fecha}</time>}
               </div>
-              <a href={`/hallazgos/${hallazgoSlug(h.titulo ?? '', h.id)}`} class="block text-sm font-semibold text-slate-100 leading-snug mb-1 hover:text-amber-400 transition-colors">
+              <a href={`/hallazgos/${hallazgoSlug(h.titulo ?? '', h.id)}`}
+                 class="block text-sm font-semibold text-slate-100 leading-snug mb-1 hover:text-amber-400 transition-colors">
                 {h.titulo}
               </a>
               {h.descripcion && (
@@ -276,59 +382,36 @@ const jsonLd = {
       </ol>
     </div>
 
-    <div id="empty-results" class="hidden py-16 text-center">
-      <p class="text-sm font-medium text-slate-400">No se encontraron casos para esa búsqueda.</p>
-      <p class="text-xs mt-1 text-slate-600">Prueba con otros términos o consulta a un abogado especialista.</p>
+    <!-- CTA B2B -->
+    <div class="max-w-4xl mx-auto px-4 pb-10">
+      <div class="rounded-xl border border-slate-700/50 bg-slate-900/40 px-6 py-5">
+        <p class="text-sm font-semibold text-slate-300 mb-1">
+          ¿Eres abogado, sindicato o academia?
+        </p>
+        <p class="text-xs text-slate-500 mb-3">
+          Accede al informe semanal de señales jurídicas en formato CSV o resumen ejecutivo.
+        </p>
+        <a
+          href="mailto:josue@benchdatalab.com?subject=Acceso%20informe%20profesional%20Radar%20Bomberos"
+          class="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          Solicitar acceso profesional
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
+        </a>
+      </div>
     </div>
 
-    <ol id="results-list" class="hidden space-y-4"></ol>
-
-    <!-- CTA opositores (ids intactos para el JS) -->
-    <div id="cta-abogado" class="hidden mt-10 rounded-xl border border-amber-800/40 bg-amber-950/30 px-6 py-5">
-      <p class="text-sm font-semibold text-amber-300 mb-1">¿Estás afrontando una irregularidad?</p>
-      <p class="text-xs text-slate-400 mb-3">
-        Si has encontrado un caso similar al tuyo, un abogado especialista en contencioso-administrativo
-        puede ayudarte a impugnar o recurrir.
-      </p>
-      <a
-        href={`mailto:contacto@${new URL(nicho.siteUrl).hostname}?subject=Consulta%20legal%20oposici%C3%B3n%20${encodeURIComponent(nicho.colectivo)}`}
-        class="inline-flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
-      >
-        Solicitar asesoramiento gratuito
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-        </svg>
-      </a>
-    </div>
-
-    <!-- CTA B2B (bloque separado, siempre visible) -->
-    <div class="mt-6 rounded-xl border border-slate-700/50 bg-slate-900/40 px-6 py-5">
-      <p class="text-sm font-semibold text-slate-300 mb-1">
-        ¿Eres abogado, sindicato o academia?
-      </p>
-      <p class="text-xs text-slate-500 mb-3">
-        Accede al informe semanal de señales jurídicas en formato CSV o resumen ejecutivo.
-      </p>
-      <a
-        href={`mailto:contacto@${new URL(nicho.siteUrl).hostname}?subject=Acceso%20informe%20profesional%20Radar%20Bomberos`}
-        class="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
-      >
-        Solicitar acceso profesional
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-        </svg>
-      </a>
-    </div>
-
-  </main>
+  </div><!-- /content-default -->
 
   <!-- FOOTER -->
-  <footer class="border-t border-slate-800/60 mt-10">
+  <footer class="border-t border-slate-800/60">
     <div class="max-w-4xl mx-auto px-4 py-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-600">
       <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
       <nav class="flex flex-wrap gap-x-4 gap-y-1 justify-center">
-        <a href="/procesos"            class="hover:text-slate-400 transition-colors">Procesos selectivos</a>
-        <a href="/incidencias"         class="hover:text-slate-400 transition-colors">Casos verificados</a>
+        <a href="/procesos"            class="hover:text-slate-400 transition-colors">Oposiciones</a>
+        <a href="/incidencias"         class="hover:text-slate-400 transition-colors">Observatorio</a>
         <a href="/origen-datos"        class="hover:text-slate-400 transition-colors">Fuentes</a>
         <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>
         <a href="/politica-privacidad" class="hover:text-slate-400 transition-colors">Privacidad</a>
@@ -392,7 +475,7 @@ const jsonLd = {
   function highlight(text: string, term: string) {
     if (!term) return escapar(text)
     const escaped = escapar(text)
-    const safeRx = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const safeRx  = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     return escaped.replace(
       new RegExp(`(${safeRx})`, 'gi'),
       '<mark class="bg-amber-500/30 text-amber-200 rounded px-0.5">$1</mark>'
@@ -404,7 +487,6 @@ const jsonLd = {
     const fecha  = fmtDate(h.fecha)
     const titulo = highlight(h.titulo, term)
     const desc   = h.descripcion ? highlight(h.descripcion.slice(0, 200), term) : ''
-
     return `<li class="rounded-xl border border-slate-800 bg-slate-900/50 p-5 hover:border-slate-700 transition-colors">
       <div class="flex flex-wrap items-center gap-2 mb-2">
         <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${color}">
@@ -424,22 +506,22 @@ const jsonLd = {
     </li>`
   }
 
-  const input        = document.getElementById('search-input')    as HTMLInputElement
-  const stats        = document.getElementById('search-stats')    as HTMLElement
-  const emptyResults = document.getElementById('empty-results')   as HTMLElement
-  const resultsList  = document.getElementById('results-list')    as HTMLElement
-  const ctaAbogado   = document.getElementById('cta-abogado')     as HTMLElement
-  const emptyInitial = document.getElementById('empty-initial')   as HTMLElement
+  const input          = document.getElementById('search-input')       as HTMLInputElement
+  const statsEl        = document.getElementById('search-stats')       as HTMLElement
+  const searchArea     = document.getElementById('search-results-area') as HTMLElement
+  const contentDefault = document.getElementById('content-default')    as HTMLElement
+  const emptyResults   = document.getElementById('empty-results')      as HTMLElement
+  const resultsList    = document.getElementById('results-list')       as HTMLElement
+  const ctaAbogado     = document.getElementById('cta-abogado')        as HTMLElement
 
   function mostrar(matches: typeof HALLAZGOS, term: string) {
     if (matches.length === 0) {
       emptyResults.classList.remove('hidden')
-      resultsList.classList.add('hidden')
+      resultsList.innerHTML = ''
       ctaAbogado.classList.add('hidden')
       return
     }
     emptyResults.classList.add('hidden')
-    resultsList.classList.remove('hidden')
     ctaAbogado.classList.remove('hidden')
     resultsList.innerHTML = matches.map(h => renderCard(h, term)).join('')
   }
@@ -448,15 +530,15 @@ const jsonLd = {
     const term = normalizar(raw.trim())
 
     if (!term) {
-      emptyInitial.classList.remove('hidden')
-      emptyResults.classList.add('hidden')
-      resultsList.classList.add('hidden')
-      ctaAbogado.classList.add('hidden')
-      stats.textContent = `${HALLAZGOS.length} señales detectadas en fuentes públicas`
+      contentDefault.classList.remove('hidden')
+      searchArea.classList.add('hidden')
+      resultsList.innerHTML = ''
+      statsEl.textContent = `${HALLAZGOS.length} señales detectadas en fuentes públicas`
       return
     }
 
-    emptyInitial.classList.add('hidden')
+    contentDefault.classList.add('hidden')
+    searchArea.classList.remove('hidden')
     emptyResults.classList.add('hidden')
 
     const words   = term.split(/\s+/).filter(Boolean)
@@ -465,18 +547,16 @@ const jsonLd = {
       return words.every(w => hay.includes(w))
     })
 
-    stats.textContent = matches.length === HALLAZGOS.length
+    statsEl.textContent = matches.length === HALLAZGOS.length
       ? `${HALLAZGOS.length} señales detectadas en fuentes públicas`
       : `${matches.length} resultado${matches.length !== 1 ? 's' : ''} para "${raw.trim()}"`
 
     mostrar(matches, raw.trim())
   }
 
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') buscar(input.value)
-  })
-
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') buscar(input.value) })
   document.getElementById('search-btn')!.addEventListener('click', () => buscar(input.value))
+  input.addEventListener('input', e => { if (!(e as InputEvent).data) buscar(input.value) })
 
   document.querySelectorAll<HTMLButtonElement>('.suggestion').forEach(btn => {
     btn.addEventListener('click', () => {
