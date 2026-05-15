@@ -26,5 +26,8 @@ pnpm-debug.log*
 .vercel
 .claude/
 
-# CSV exports (no subir datos a git)
-exports/*.csv
+# Exports — contenido generado, no va a git (los directorios sí, via .gitkeep)
+exports/csv/*.csv
+exports/informes/*.md
+exports/archivados/*.csv
+exports/archivados/*.md
