@@ -1,16 +1,33 @@
 ---
 import Layout from '../../layouts/Layout.astro'
+import { createClient } from '@supabase/supabase-js'
 import { nicho } from '../../lib/nicho'
-import { procesos } from '../../data/procesos'
-import type { EstadoProceso } from '../../data/procesos'
 
-export function getStaticPaths() {
-  return procesos.map(p => ({ params: { slug: p.slug }, props: { proceso: p } }))
+export async function getStaticPaths() {
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_KEY,
+  )
+
+  const { data: procesos = [] } = await supabase
+    .from('procesos_selectivos')
+    .select(`
+      slug, organismo, comunidad, provincia, municipio,
+      cuerpo, plazas, estado, fecha_pub, fecha_fin_inst,
+      url_oficial, descripcion,
+      senales_proceso(tipo, titulo, fecha, url, fuente)
+    `)
+    .eq('nicho', 'bomberos')
+
+  return (procesos ?? []).map(p => ({
+    params: { slug: p.slug },
+    props:  { proceso: p },
+  }))
 }
 
 const { proceso: p } = Astro.props
 
-const ESTADO_META: Record<EstadoProceso, { label: string; color: string }> = {
+const ESTADO_META: Record<string, { label: string; color: string }> = {
   abierto:    { label: 'Abierto',    color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'      },
   activo:     { label: 'Activo',     color: 'text-slate-300 bg-slate-800/80 ring-slate-700/50' },
   impugnado:  { label: 'Impugnado',  color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50' },
@@ -29,15 +46,16 @@ const SENAL_META: Record<string, { label: string; color: string }> = {
   suspension:   { label: 'Suspensión',   color: 'text-slate-400 bg-slate-800/60 ring-slate-600/50' },
 }
 
-const em    = ESTADO_META[p.estado]
-const lugar = [p.municipio, p.provincia, p.comunidad].filter(Boolean).join(', ')
+const em     = ESTADO_META[p.estado] ?? { label: p.estado, color: 'text-slate-400 bg-slate-800 ring-slate-700/50' }
+const lugar  = [p.municipio, p.provincia, p.comunidad].filter(Boolean).join(', ')
+const senales = p.senales_proceso ?? []
 
 const pageTitle = `${p.organismo} — ${p.cuerpo}${p.plazas ? ` · ${p.plazas} plazas` : ''} · ${nicho.nombre}`
-const pageDesc  = p.descripcion
+const pageDesc  = p.descripcion ?? ''
 
 const jsonLd = {
-  '@context':   'https://schema.org',
-  '@type':      'WebPage',
+  '@context':  'https://schema.org',
+  '@type':     'WebPage',
   name:         pageTitle,
   description:  pageDesc,
   url:          `${nicho.siteUrl}/procesos/${p.slug}`,
@@ -79,7 +97,7 @@ function isInternal(url: string | null): boolean {
         <span class={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${em.color}`}>
           {em.label}
         </span>
-        {p.tieneSenales && (
+        {senales.length > 0 && (
           <span class="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 text-slate-400 bg-slate-800/60 ring-slate-700/50">
             Con señales
           </span>
@@ -109,31 +127,31 @@ function isInternal(url: string | null): boolean {
             <dd class="text-sm font-semibold text-slate-200">{p.plazas}</dd>
           </div>
         )}
-        {p.fechaPublicacion && (
+        {p.fecha_pub && (
           <div class="rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3">
             <dt class="text-xs text-slate-600 mb-0.5">Publicación</dt>
             <dd class="text-sm font-semibold text-slate-200">
-              <time datetime={p.fechaPublicacion}>
-                {new Date(p.fechaPublicacion).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+              <time datetime={p.fecha_pub}>
+                {new Date(p.fecha_pub).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
               </time>
             </dd>
           </div>
         )}
-        {p.fechaFinInstancia && (
+        {p.fecha_fin_inst && (
           <div class="rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3">
             <dt class="text-xs text-slate-600 mb-0.5">Fin plazo instancias</dt>
             <dd class="text-sm font-semibold text-slate-200">
-              <time datetime={p.fechaFinInstancia}>
-                {new Date(p.fechaFinInstancia).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+              <time datetime={p.fecha_fin_inst}>
+                {new Date(p.fecha_fin_inst).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
               </time>
             </dd>
           </div>
         )}
-        {p.urlOficial && (
+        {p.url_oficial && (
           <div class="rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3">
             <dt class="text-xs text-slate-600 mb-0.5">Documento oficial</dt>
             <dd class="text-sm">
-              <a href={p.urlOficial} target="_blank" rel="noopener noreferrer"
+              <a href={p.url_oficial} target="_blank" rel="noopener noreferrer"
                  class="text-amber-400 hover:text-amber-300 transition-colors">
                 Ver publicación →
               </a>
@@ -144,13 +162,13 @@ function isInternal(url: string | null): boolean {
     </section>
 
     <!-- SEÑALES ASOCIADAS -->
-    {p.senales.length > 0 && (
+    {senales.length > 0 && (
       <section>
         <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">
           Señales asociadas
         </h2>
         <ol class="space-y-3">
-          {p.senales.map(s => {
+          {senales.map(s => {
             const sm    = SENAL_META[s.tipo] ?? { label: s.tipo, color: 'text-slate-400 bg-slate-800 ring-slate-700/50' }
             const fecha = s.fecha
               ? new Date(s.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })

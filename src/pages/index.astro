@@ -4,8 +4,6 @@ import { createClient } from '@supabase/supabase-js'
 import { hallazgoSlug } from '../lib/slugify'
 import { nicho, nichoId } from '../lib/nicho'
 import { incidencias } from '../data/incidencias'
-import { procesos } from '../data/procesos'
-import type { EstadoProceso } from '../data/procesos'
 
 const supabase = createClient(
   import.meta.env.PUBLIC_SUPABASE_URL,
@@ -33,9 +31,15 @@ const statsSentencias    = statsData?.filter(r => r.tipo === 'sentencia').length
 const statsImpugnaciones = statsData?.filter(r => r.tipo === 'impugnacion').length ?? 0
 const statsAnulaciones   = statsData?.filter(r => r.tipo === 'anulacion').length   ?? 0
 
-const procesosDestacados = procesos.filter(p => p.estado !== 'cerrado').slice(0, 3)
+const { data: procesosDestacados = [] } = await supabase
+  .from('procesos_selectivos')
+  .select('slug, organismo, provincia, municipio, cuerpo, plazas, estado, senales_proceso(id)')
+  .eq('nicho', 'bomberos')
+  .neq('estado', 'cerrado')
+  .order('updated_at', { ascending: false })
+  .limit(3)
 
-const ESTADO_META: Record<EstadoProceso, { label: string; color: string }> = {
+const ESTADO_META: Record<string, { label: string; color: string }> = {
   abierto:    { label: 'Abierto',    color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'      },
   activo:     { label: 'Activo',     color: 'text-slate-300 bg-slate-800/80 ring-slate-700/50' },
   impugnado:  { label: 'Impugnado',  color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50' },
@@ -260,8 +264,9 @@ const jsonLd = {
         </div>
         <div class="space-y-2">
           {procesosDestacados.map(p => {
-            const em    = ESTADO_META[p.estado]
-            const lugar = [p.municipio, p.provincia].filter(Boolean).join(', ')
+            const em         = ESTADO_META[p.estado] ?? { label: p.estado, color: 'text-slate-400 bg-slate-800 ring-slate-700/50' }
+            const lugar      = [p.municipio, p.provincia].filter(Boolean).join(', ')
+            const tieneSenales = (p.senales_proceso?.length ?? 0) > 0
             return (
               <a
                 href={`/procesos/${p.slug}`}
@@ -276,7 +281,7 @@ const jsonLd = {
                 <span class="text-xs text-slate-500 shrink-0">
                   {p.cuerpo}{p.plazas ? ` · ${p.plazas} plazas` : ''}{lugar ? ` · ${lugar}` : ''}
                 </span>
-                {p.tieneSenales && (
+                {tieneSenales && (
                   <span class="shrink-0 inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 text-slate-400 bg-slate-800/60 ring-slate-700/50">
                     Con señales
                   </span>

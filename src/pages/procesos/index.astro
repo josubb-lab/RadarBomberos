@@ -1,19 +1,29 @@
 ---
 import Layout from '../../layouts/Layout.astro'
+import { createClient } from '@supabase/supabase-js'
 import { nicho } from '../../lib/nicho'
-import { procesos } from '../../data/procesos'
-import type { EstadoProceso } from '../../data/procesos'
+
+const supabase = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_KEY,
+)
+
+const { data: procesos = [] } = await supabase
+  .from('procesos_selectivos')
+  .select('slug, organismo, provincia, municipio, cuerpo, plazas, estado, fecha_pub, senales_proceso(id)')
+  .eq('nicho', 'bomberos')
+  .order('updated_at', { ascending: false })
 
 const pageTitle = `Procesos selectivos de bomberos — ${nicho.nombre}`
 const pageDesc  = 'Procesos selectivos de bomberos con convocatorias, documentación pública y señales asociadas.'
 
-const ESTADO_META: Record<EstadoProceso, { label: string; color: string }> = {
-  abierto:    { label: 'Abierto',    color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'     },
+const ESTADO_META: Record<string, { label: string; color: string }> = {
+  abierto:    { label: 'Abierto',    color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'      },
   activo:     { label: 'Activo',     color: 'text-slate-300 bg-slate-800/80 ring-slate-700/50' },
   impugnado:  { label: 'Impugnado',  color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50' },
   suspendido: { label: 'Suspendido', color: 'text-slate-400 bg-slate-800/60 ring-slate-600/50' },
   cerrado:    { label: 'Cerrado',    color: 'text-slate-500 bg-slate-800/40 ring-slate-700/40' },
-  anulado:    { label: 'Anulado',    color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'   },
+  anulado:    { label: 'Anulado',    color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'    },
 }
 
 const jsonLd = {
@@ -66,8 +76,9 @@ const jsonLd = {
   <main class="max-w-4xl mx-auto px-4 py-10">
     <ol class="space-y-4">
       {procesos.map(p => {
-        const em    = ESTADO_META[p.estado]
-        const lugar = [p.municipio, p.provincia].filter(Boolean).join(', ')
+        const em         = ESTADO_META[p.estado] ?? { label: p.estado, color: 'text-slate-400 bg-slate-800 ring-slate-700/50' }
+        const lugar      = [p.municipio, p.provincia].filter(Boolean).join(', ')
+        const tieneSenales = (p.senales_proceso?.length ?? 0) > 0
         return (
           <li>
             <a
@@ -78,7 +89,7 @@ const jsonLd = {
                 <span class={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${em.color}`}>
                   {em.label}
                 </span>
-                {p.tieneSenales && (
+                {tieneSenales && (
                   <span class="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 text-slate-400 bg-slate-800/60 ring-slate-700/50">
                     Con señales
                   </span>
@@ -89,7 +100,7 @@ const jsonLd = {
                 {p.organismo}
               </p>
               <p class="text-xs text-slate-500 leading-relaxed">
-                {p.cuerpo}{p.plazas ? ` · ${p.plazas} plazas` : ''}{p.fechaPublicacion ? ` · ${p.fechaPublicacion.slice(0, 4)}` : ''}
+                {p.cuerpo}{p.plazas ? ` · ${p.plazas} plazas` : ''}{p.fecha_pub ? ` · ${p.fecha_pub.slice(0, 4)}` : ''}
               </p>
             </a>
           </li>
