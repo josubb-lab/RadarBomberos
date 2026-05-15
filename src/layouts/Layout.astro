@@ -5,12 +5,16 @@ interface Props {
   title?: string
   description?: string
   jsonLd?: object
+  canonical?: string
+  noindex?: boolean
 }
 
 const {
   title = 'Radar Bomberos',
   description = 'Transparencia y justicia para el opositor de bomberos en España.',
   jsonLd,
+  canonical,
+  noindex = false,
 } = Astro.props
 ---
 
@@ -22,6 +26,8 @@ const {
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="description" content={description} />
     <title>{title}</title>
+    {canonical && <link rel="canonical" href={canonical} />}
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>
   <body class="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-amber-500/30">

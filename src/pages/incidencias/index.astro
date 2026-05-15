@@ -34,7 +34,7 @@ const jsonLd = {
 }
 ---
 
-<Layout title={pageTitle} description={pageDesc}>
+<Layout title={pageTitle} description={pageDesc} canonical={nicho.siteUrl + '/incidencias'}>
 
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 

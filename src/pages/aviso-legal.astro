@@ -1,30 +1,30 @@
 ---
 import LegalLayout from '../layouts/LegalLayout.astro'
+import { nicho } from '../lib/nicho'
 ---
-<LegalLayout title="Aviso legal">
+<LegalLayout title="Aviso legal" canonical={`${nicho.siteUrl}/aviso-legal`}>
 
   <h1>Aviso legal</h1>
 
-  <p>En cumplimiento de la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Información y del Comercio Electrónico (LSSI-CE), se facilitan los siguientes datos del titular del sitio web.</p>
+  <p>En cumplimiento de la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Información y del Comercio Electrónico (LSSI-CE), se facilita la siguiente información sobre el titular de este sitio web.</p>
 
   <h2>Datos del titular</h2>
   <p>
-    <strong>Titular:</strong> [Nombre o razón social]<br/>
-    <strong>NIF/CIF:</strong> [XXXXXXXXX]<br/>
-    <strong>Domicilio:</strong> [Dirección completa]<br/>
-    <strong>Email:</strong> contacto@radarbomberos.es
+    <strong>Titular:</strong> BenchDataLab<br/>
+    <strong>Email:</strong> <a href="mailto:josue@benchdatalab.com">josue@benchdatalab.com</a><br/>
+    <strong>Identificación:</strong> Datos identificativos completos disponibles bajo solicitud razonable a través del correo de contacto.
   </p>
 
   <h2>Objeto del sitio web</h2>
-  <p>Radar Bomberos es un proyecto independiente de vigilancia pública cuyo objeto es recopilar y poner a disposición del usuario información procedente de fuentes públicas (boletines oficiales, sentencias judiciales, prensa, foros) sobre señales negativas relacionadas con procesos selectivos de acceso a los cuerpos de bomberos en España.</p>
+  <p>Firefighter.es es un observatorio independiente de carácter informativo cuyo objeto es recopilar y estructurar información procedente de fuentes públicas —boletines oficiales, sentencias judiciales, prensa especializada— sobre señales relacionadas con procesos selectivos de acceso a los cuerpos de bomberos en España. El sitio no presta servicios jurídicos ni actúa como despacho de abogados.</p>
 
   <h2>Propiedad intelectual</h2>
-  <p>El código fuente, diseño y contenidos propios de este sitio son propiedad del titular. Los datos indexados proceden de fuentes públicas y se reproducen con fines informativos, enlazando siempre al documento original. Si eres titular de algún contenido y deseas su retirada, contacta con nosotros en contacto@radarbomberos.es.</p>
+  <p>El código fuente, diseño y contenidos propios de este sitio son propiedad de BenchDataLab. Los datos indexados proceden de fuentes públicas y se reproducen con fines informativos, enlazando siempre al documento original. Si eres titular de algún contenido y deseas su retirada o corrección, contacta en <a href="mailto:josue@benchdatalab.com">josue@benchdatalab.com</a>.</p>
 
   <h2>Responsabilidad sobre los contenidos</h2>
-  <p>Radar Bomberos no elabora ni verifica el contenido de las fuentes externas. La información se ofrece tal como aparece en dichas fuentes, con fines exclusivamente informativos. El titular no se hace responsable de las decisiones tomadas por el usuario basándose en la información disponible en este sitio.</p>
+  <p>Firefighter.es no elabora ni verifica el contenido de las fuentes externas. La información se ofrece tal como aparece en dichas fuentes, con fines exclusivamente informativos. El titular no se hace responsable de las decisiones tomadas por el usuario basándose en la información disponible en este sitio.</p>
 
   <h2>Legislación aplicable y jurisdicción</h2>
-  <p>Este aviso legal se rige por la legislación española vigente. Para cualquier controversia derivada del acceso o uso de este sitio web, las partes se someten a los juzgados y tribunales del domicilio del titular, con renuncia a cualquier otro fuero que pudiera corresponderles.</p>
+  <p>Este aviso legal se rige por la legislación española vigente. Para cualquier controversia derivada del acceso o uso de este sitio web, las partes se someten a los juzgados y tribunales competentes según la normativa aplicable.</p>
 
 </LegalLayout>
