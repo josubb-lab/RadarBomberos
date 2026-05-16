@@ -1,4 +1,4 @@
- name: Scraper señales jurídicas — bomberos
+ name: Scraper senales juridicas — bomberos
 
   on:
     schedule:
@@ -29,6 +29,6 @@
             git config user.name "scraper-bot"
             git config user.email "scraper@firefighter.es"
             git add exports/csv/ || true
-            git diff --cached --quiet || git commit -m "chore: CSV señales $(date
+            git diff --cached --quiet || git commit -m "chore: CSV senales $(date
   +%Y-%m-%d)"
         - run: git push origin master
