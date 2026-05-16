@@ -45,7 +45,7 @@ const TIPO_MAP = {
   correccion:  ['corrección de errores', 'fe de erratas'],
 }
 
-const KW_BOMBERO  = ['bombero', 'bomberos', 'extinción de incendios', 'suhiltzaile', 'suhiltzaileak']
+const KW_BOMBERO  = ['bombero', 'bomberos', 'suhiltzaile', 'suhiltzaileak']
 const KW_JURIDICO = Object.values(TIPO_MAP).flat()
 
 function detectarTipo(texto) {
@@ -178,7 +178,8 @@ async function scrapeBOE() {
 const BOLETINES = [
   { nombre: 'DOGC', rss: 'https://dogc.gencat.cat/ca/pdogc_canals_interns/pdogc_resultats_fitxa/?action=fitxa&text=bombero&format=rss', atom: false },
   { nombre: 'BOB',  rss: 'http://www.bizkaia.eus/lehendakaritza/Bao_bob/RSS/BT00_RSS_EU.XML',                                          atom: false },
-  { nombre: 'BOJA', rss: 'https://www.juntadeandalucia.es/boja/distribucion/s51.xml',                                                   atom: true  },
+  { nombre: 'BOJA', rss: 'https://www.juntadeandalucia.es/boja/distribucion/s51.xml', atom: true },
+  { nombre: 'BOJA', rss: 'https://www.juntadeandalucia.es/boja/distribucion/s52.xml', atom: true },
 ]
 
 function parsearAtom(xml) {
