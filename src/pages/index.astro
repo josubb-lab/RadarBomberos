@@ -39,11 +39,25 @@ const { data: noticiasData } = await supabase
   .order('fecha', { ascending: false, nullsFirst: false })
   .limit(4)
 
-const noticias = (noticiasData ?? []).map(n => ({
-  titulo: n.titulo ?? '',
-  link:   n.url    ?? '',
-  fecha:  n.fecha  ?? '',
-}))
+let boeNoticias: Array<{ titulo: string; link: string; fecha: string; fuente: string }> = []
+try {
+  const rss = await fetch('https://www.boe.es/rss/canal.php?c=boe', { signal: AbortSignal.timeout(4000) })
+  const xml = await rss.text()
+  boeNoticias = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)]
+    .map(m => ({
+      titulo: (m[1].match(/<title><!\[CDATA\[(.*?)\]\]>/)?.[1] ?? m[1].match(/<title>(.*?)<\/title>/)?.[1] ?? '').trim(),
+      link:   (m[1].match(/<guid[^>]*>(.*?)<\/guid>/)?.[1] ?? '').trim(),
+      fecha:  (m[1].match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? '').trim(),
+      fuente: 'BOE',
+    }))
+    .filter(i => i.titulo && /bombero/i.test(i.titulo))
+    .slice(0, 4)
+} catch { /* opcional */ }
+
+const noticias = [
+  ...(noticiasData ?? []).map(n => ({ titulo: n.titulo ?? '', link: n.url ?? '', fecha: n.fecha ?? '', fuente: 'Noticia' })),
+  ...boeNoticias,
+].slice(0, 6)
 
 const senales = (hallazgos ?? []).slice(0, 4).map(h => ({
   slug:   hallazgoSlug(h.titulo ?? '', h.id),
@@ -287,7 +301,7 @@ const jsonLd = {
           {noticias.map(n => (
             <li class="rounded-xl border border-sky-900/50 hover:border-sky-700/50 bg-slate-900/60 p-4 transition-colors flex flex-col gap-3">
               <span class="self-start text-[10px] font-semibold px-2 py-0.5 rounded-full ring-1 text-sky-400 bg-sky-950/50 ring-sky-700/40">
-                Noticia
+                {n.fuente}
               </span>
               <a href={n.link} target="_blank" rel="noopener noreferrer"
                  class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors leading-snug flex-1">
