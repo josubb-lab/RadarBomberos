@@ -1,10 +1,8 @@
- name: Scraper señales jurídicas — bomberos
-
- "on":
+name: Scraper bomberos
+  "on":
     schedule:
-      - cron: '0 6 * * 1'
-    workflow_dispatch:
-
+      - cron: "0 6 * * 1"
+    workflow_dispatch: {}
   jobs:
     scraper:
       runs-on: ubuntu-latest
@@ -14,21 +12,20 @@
             token: ${{ secrets.GITHUB_TOKEN }}
         - uses: actions/setup-node@v4
           with:
-            node-version: '22'
-            cache: 'npm'
+            node-version: "22"
+            cache: npm
         - run: npm ci
         - name: Run scraper
           env:
-            PUBLIC_SUPABASE_URL:  ${{ secrets.PUBLIC_SUPABASE_URL }}
-            PUBLIC_SUPABASE_KEY:  ${{ secrets.PUBLIC_SUPABASE_KEY }}
+            PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+            PUBLIC_SUPABASE_KEY: ${{ secrets.PUBLIC_SUPABASE_KEY }}
             SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-            PUBLIC_NICHO:         bomberos
+            PUBLIC_NICHO: bomberos
           run: node scripts/scraper.js
         - name: Commit CSV
           run: |
             git config user.name "scraper-bot"
             git config user.email "scraper@firefighter.es"
             git add exports/csv/ || true
-            git diff --cached --quiet || git commit -m "chore: CSV señales $(date
-  +%Y-%m-%d)"
+            git diff --cached --quiet || git commit -m "chore: CSV $(date +%Y-%m-%d)"
         - run: git push origin master
