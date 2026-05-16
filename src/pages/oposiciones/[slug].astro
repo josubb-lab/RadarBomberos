@@ -175,17 +175,14 @@ const jsonLd = {
           </p>
         </div>
         <form
+          id="lead-form"
           class="flex flex-col gap-3 w-full sm:w-72 shrink-0"
-          action="https://formsubmit.co/josue@benchdatalab.com"
-          method="POST"
+          data-cuerpo={c.nombre}
+          data-ciudad={c.ciudad}
         >
-          <input type="hidden" name="cuerpo"   value={c.nombre} />
-          <input type="hidden" name="ciudad"   value={c.ciudad} />
-          <input type="hidden" name="_subject" value={`Contacto oposiciones — ${c.ciudad}`} />
-          <input type="hidden" name="_next"    value="https://firefighter.es/oposiciones/gracias" />
-          <input type="hidden" name="_captcha" value="false" />
           <input
             type="email"
+            id="lead-email"
             name="email"
             required
             placeholder="tu@email.com"
@@ -193,10 +190,12 @@ const jsonLd = {
           />
           <button
             type="submit"
+            id="lead-btn"
             class="w-full rounded-lg border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold py-2.5 transition-colors"
           >
             Enviar
           </button>
+          <p id="lead-error" class="hidden text-[10px] text-rose-400 text-center">Error al enviar. Inténtalo de nuevo.</p>
           <p class="text-[10px] text-slate-700 text-center">
             <a href="/politica-privacidad" class="underline hover:text-slate-500">Política de privacidad</a>
           </p>
@@ -245,6 +244,66 @@ const jsonLd = {
     </section>
 
   </main>
+
+  <script define:vars={{
+    SB_URL: import.meta.env.PUBLIC_SUPABASE_URL,
+    SB_KEY: import.meta.env.PUBLIC_SUPABASE_KEY,
+  }}>
+    const form   = document.getElementById('lead-form')
+    const btn    = document.getElementById('lead-btn')
+    const errEl  = document.getElementById('lead-error')
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const email  = document.getElementById('lead-email').value.trim()
+      const cuerpo = form.dataset.cuerpo
+      const ciudad = form.dataset.ciudad
+
+      btn.disabled    = true
+      btn.textContent = 'Enviando…'
+      errEl.classList.add('hidden')
+
+      try {
+        // 1) Supabase insert
+        const sbRes = await fetch(`${SB_URL}/rest/v1/leads`, {
+          method:  'POST',
+          headers: {
+            'apikey':        SB_KEY,
+            'Authorization': `Bearer ${SB_KEY}`,
+            'Content-Type':  'application/json',
+            'Prefer':        'return=minimal',
+          },
+          body: JSON.stringify({
+            email,
+            tipo:   'opositor',
+            cuerpo,
+            ciudad,
+            fuente: window.location.pathname,
+          }),
+        })
+
+        // 2) Email via Formsubmit AJAX (no-redirect)
+        await fetch('https://formsubmit.co/ajax/josue@benchdatalab.com', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            email,
+            cuerpo,
+            ciudad,
+            _subject: `Contacto oposiciones — ${ciudad}`,
+          }),
+        }).catch(() => {}) // email es best-effort, no bloquea
+
+        if (!sbRes.ok) throw new Error('supabase error')
+
+        window.location.href = '/oposiciones/gracias'
+      } catch {
+        errEl.classList.remove('hidden')
+        btn.disabled    = false
+        btn.textContent = 'Enviar'
+      }
+    })
+  </script>
 
   <!-- FOOTER -->
   <footer class="border-t border-slate-800/60 mt-10">
