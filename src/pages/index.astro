@@ -19,39 +19,7 @@ const { data: hallazgos, error } = await supabase
   .order('fecha', { ascending: false, nullsFirst: false })
   .limit(500)
 
-const { data: statsData } = await supabase
-  .from('hallazgos')
-  .select('tipo')
-  .eq('nicho', nichoId)
-  .in('tipo', ['sentencia', 'impugnacion', 'anulacion'])
-  .or('fecha.gte.2020-01-01,curado.eq.true')
-
-const total              = hallazgos?.length ?? 0
-const statsSentencias    = statsData?.filter(r => r.tipo === 'sentencia').length   ?? 0
-const statsImpugnaciones = statsData?.filter(r => r.tipo === 'impugnacion').length ?? 0
-const statsAnulaciones   = statsData?.filter(r => r.tipo === 'anulacion').length   ?? 0
-
-
-const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {
-  'BOE':                     { label: 'Boletín oficial', icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50' },
-  'CENDOJ':                  { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'  },
-  'CENDOJ (vía DuckDuckGo)': { label: 'Sentencia',       icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'  },
-  'Google News':             { label: 'Prensa',           icon: '📰',  color: 'text-sky-400 bg-sky-950/60 ring-sky-700/50'     },
-  'Google News (legal)':     { label: 'Sentencia',        icon: '⚖️',  color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'  },
-}
-function sourceMeta(fuente: string) {
-  if (fuente.startsWith('Reddit')) return { label: 'Foro', icon: '💬', color: 'text-orange-400 bg-orange-950/60 ring-orange-700/50' }
-  return SOURCE_META[fuente] ?? { label: fuente ?? 'Fuente', icon: '🔗', color: 'text-slate-400 bg-slate-800 ring-slate-700/50' }
-}
-
-const TIPO_INCIDENCIA: Record<string, string> = {
-  sentencia:               'Sentencia',
-  impugnacion:             'Impugnación',
-  anulacion:               'Anulación',
-  correccion_convocatoria: 'Corrección',
-  recurso:                 'Recurso',
-  pregunta_anulada:        'Pregunta anulada',
-}
+const total = hallazgos?.length ?? 0
 
 const serialized = JSON.stringify(
   (hallazgos ?? []).map(h => ({
@@ -63,13 +31,6 @@ const serialized = JSON.stringify(
     url:         h.url         ?? '',
   }))
 )
-
-const TIPOS_JURIDICOS = new Set([
-  'sentencia', 'impugnacion', 'anulacion', 'suspension', 'medida_cautelar', 'recurso', 'correccion_bases',
-])
-const recientes = (hallazgos ?? [])
-  .filter(h => TIPOS_JURIDICOS.has(h.tipo ?? ''))
-  .slice(0, 20)
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -101,268 +62,213 @@ const jsonLd = {
 
   <!-- HERO -->
   <section class="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/60">
-    <div class="max-w-4xl mx-auto px-4 py-10 lg:py-12 text-center">
-      <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-4">
+    <div class="max-w-4xl mx-auto px-4 py-14 lg:py-20">
+      <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-5">
         {nicho.tagline}
       </p>
-      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-50 leading-tight mb-3">
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-50 leading-tight mb-5 max-w-2xl">
         Oposiciones a bombero en España
       </h1>
-      <p class="text-slate-400 text-base max-w-xl mx-auto">
-        Convocatorias, procesos activos y señales jurídicas documentadas desde fuentes públicas.
+      <p class="text-slate-400 text-base sm:text-lg max-w-xl leading-relaxed mb-8">
+        Guía de convocatorias, requisitos y temario por cuerpo — y el único observatorio que documenta sentencias, impugnaciones y anulaciones desde fuentes oficiales.
       </p>
-    </div>
-  </section>
-
-  <!-- DOS ENTRADAS PRINCIPALES -->
-  <section class="border-b border-slate-800/60 bg-slate-950">
-    <div class="max-w-4xl mx-auto px-4 py-8">
-      <div class="grid sm:grid-cols-2 gap-4">
-
-        <!-- Línea 1: Oposiciones -->
+      <div class="flex flex-wrap gap-3">
         <a href="/oposiciones"
-           class="group rounded-xl border border-slate-700 bg-slate-900/60 p-6
-                  hover:border-sky-700/60 hover:bg-sky-950/20 transition-colors block">
-          <div class="flex items-center gap-3 mb-3">
-            <span class="text-xl">🗂</span>
-            <h2 class="text-base font-bold text-slate-100 group-hover:text-sky-300 transition-colors">
-              Oposiciones
-            </h2>
-          </div>
-          <p class="text-sm text-slate-400 mb-4 leading-relaxed">
-            Guía de los 20 cuerpos de bomberos más importantes. Requisitos, temario y alertas de convocatoria.
-          </p>
-          <ul class="text-xs text-slate-500 space-y-1.5 mb-5">
-            <li>· Requisitos de acceso por cuerpo</li>
-            <li>· Fases del proceso selectivo</li>
-            <li>· Alerta cuando convoquen en tu ciudad</li>
-          </ul>
-          <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-400 group-hover:text-sky-300 transition-colors">
-            Ver oposiciones por ciudad
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-            </svg>
-          </span>
+           class="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold px-5 py-2.5 transition-colors">
+          Ver oposiciones por ciudad
         </a>
-
-        <!-- Línea 2: Observatorio -->
-        <a href="/incidencias"
-           class="group rounded-xl border border-slate-700 bg-slate-900/60 p-6
-                  hover:border-amber-700/60 hover:bg-amber-950/20 transition-colors block">
-          <div class="flex items-center gap-3 mb-3">
-            <span class="text-xl">⚖️</span>
-            <h2 class="text-base font-bold text-slate-100 group-hover:text-amber-300 transition-colors">
-              Observatorio jurídico
-            </h2>
-          </div>
-          <p class="text-sm text-slate-400 mb-4 leading-relaxed">
-            Sentencias, impugnaciones y anulaciones en oposiciones a bombero.
-          </p>
-          <ul class="text-xs text-slate-500 space-y-1.5 mb-5">
-            <li>· <span class="text-rose-400 font-medium">{statsSentencias}</span> sentencias documentadas</li>
-            <li>· <span class="text-amber-400 font-medium">{statsImpugnaciones}</span> impugnaciones registradas</li>
-            <li>· <span class="text-slate-300 font-medium">{statsAnulaciones}</span> anulaciones verificadas</li>
-          </ul>
-          <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 group-hover:text-amber-300 transition-colors">
-            Ver observatorio jurídico
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-            </svg>
-          </span>
+        <a href="#buscador"
+           class="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 hover:border-slate-500 text-slate-300 text-sm font-semibold px-5 py-2.5 transition-colors">
+          Buscar en el observatorio
         </a>
-
       </div>
     </div>
   </section>
 
-  <!-- BUSCADOR -->
-  <section class="border-b border-slate-800/60 bg-slate-900/30">
-    <div class="max-w-4xl mx-auto px-4 py-8">
-      <p class="text-xs text-slate-500 mb-3">Buscar en el observatorio</p>
-      <div class="relative max-w-xl">
-        <button
-          id="search-btn"
-          type="button"
-          aria-label="Buscar"
-          class="absolute left-3 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-amber-400 transition-colors"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-        </button>
+  <!-- PARA QUIÉN -->
+  <section class="border-b border-slate-800/60 bg-slate-950">
+    <div class="max-w-4xl mx-auto px-4 py-12 space-y-3">
+
+      <!-- Opositor -->
+      <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+        <div class="flex items-start gap-5">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-sky-950/60 border border-sky-800/40 flex items-center justify-center">
+            <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-sky-400 uppercase tracking-widest mb-2">Opositor</p>
+            <div class="grid sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <p class="text-sm font-semibold text-slate-200 mb-1">Busca tu convocatoria</p>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  Consulta requisitos de acceso, temario y fases del proceso selectivo para los 20 cuerpos principales de España. Filtra por ciudad.
+                </p>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-slate-200 mb-1">Comprueba el historial del proceso</p>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  Antes de presentarte, busca si ese proceso ha tenido sentencias, impugnaciones o correcciones previas. Es información pública que pocos recopilan.
+                </p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <a href="/oposiciones" class="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors">
+                Ver guía por ciudad
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+              </a>
+              <span class="text-slate-700">·</span>
+              <a href="#buscador" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors">
+                Buscar en el observatorio
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Abogado / Sindicato -->
+      <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+        <div class="flex items-start gap-5">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-amber-950/60 border border-amber-800/40 flex items-center justify-center">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.97zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.97z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-amber-400 uppercase tracking-widest mb-2">Abogado · Sindicato</p>
+            <div class="grid sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <p class="text-sm font-semibold text-slate-200 mb-1">Identifica procesos con afectados</p>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  El CSV semanal recoge todos los procesos selectivos de bomberos con señal jurídica activa — impugnados, anulados, suspendidos — ordenados por criticidad. Una fila por señal, una por proceso.
+                </p>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-slate-200 mb-1">Visibilidad como referencia</p>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  Cuando un opositor afectado consulta el observatorio y necesita orientación legal, puede contactar directamente. Si quieres figurar como contacto de referencia en casos concretos, háblanos.
+                </p>
+              </div>
+            </div>
+            <a
+              href={`mailto:josue@benchdatalab.com?subject=${encodeURIComponent('Acceso informe profesional — Radar Bomberos')}`}
+              class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+            >
+              Solicitar acceso al CSV semanal
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Academia -->
+      <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+        <div class="flex items-start gap-5">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-slate-800/80 border border-slate-700/60 flex items-center justify-center">
+            <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Academia de oposiciones</p>
+            <div class="grid sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <p class="text-sm font-semibold text-slate-200 mb-1">Llega a opositores activos</p>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  Aparece en la ficha del cuerpo que preparas cuando un candidato busca información sobre esa convocatoria concreta. Tráfico de alta intención, no genérico.
+                </p>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-slate-200 mb-1">Posicionamiento local</p>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  Las fichas están optimizadas para búsquedas como "academia oposiciones bomberos Madrid". Estar presente cuando alguien lo busca es el momento de mayor conversión.
+                </p>
+              </div>
+            </div>
+            <a
+              href={`mailto:josue@benchdatalab.com?subject=${encodeURIComponent('Academia — quiero aparecer en Firefighter.es')}`}
+              class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-slate-100 transition-colors"
+            >
+              Solicitar inclusión en la guía
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- OBSERVATORIO TEASER -->
+  <section class="border-t border-slate-800/60 bg-slate-950">
+    <div class="max-w-4xl mx-auto px-4 py-12">
+
+      <div class="mb-7">
+        <p class="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-3">Observatorio jurídico</p>
+        <h2 class="text-xl sm:text-2xl font-extrabold text-slate-50 mb-2">
+          ¿Tu proceso tiene señales?
+        </h2>
+        <p class="text-sm text-slate-500 max-w-lg leading-relaxed">
+          Busca entre {total} señales documentadas — sentencias, impugnaciones, anulaciones y correcciones publicadas en fuentes oficiales.
+        </p>
+      </div>
+
+      <!-- Input -->
+      <div class="relative max-w-xl mb-3">
+        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
         <input
           id="search-input"
           type="search"
-          placeholder={nicho.placeholder}
+          placeholder="Ej: Palma, impugnación, nulidad, Catalunya…"
           autocomplete="off"
-          class="w-full bg-slate-800 border border-slate-600 rounded-xl pl-12 pr-4 py-4
-                 text-base text-slate-100 placeholder-slate-500
-                 focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-amber-500/60
-                 transition shadow-lg shadow-black/30"
+          class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-11 pr-4 py-3.5
+                 text-sm text-slate-100 placeholder-slate-600
+                 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-600/60
+                 transition"
         />
       </div>
-      <p id="search-stats" class="mt-2 text-xs text-slate-600">
-        {total} señales detectadas en fuentes públicas
-      </p>
-    </div>
-  </section>
 
-  <!-- RESULTADOS DE BÚSQUEDA (oculto por defecto) -->
-  <div id="search-results-area" class="hidden max-w-4xl mx-auto px-4 py-8 space-y-6">
-    <div id="empty-results" class="hidden py-16 text-center">
-      <p class="text-sm font-medium text-slate-400">No se encontraron casos para esa búsqueda.</p>
-      <p class="text-xs mt-1 text-slate-600">Prueba con otros términos o consulta a un abogado especialista.</p>
-    </div>
-    <ol id="results-list" class="space-y-4"></ol>
-    <div id="cta-abogado" class="hidden rounded-xl border border-amber-800/40 bg-amber-950/30 px-6 py-5">
-      <p class="text-sm font-semibold text-amber-300 mb-1">¿Estás afrontando un proceso con incidencias?</p>
-      <p class="text-xs text-slate-400 mb-3">
-        Si has encontrado un caso similar al tuyo, un abogado especialista en contencioso-administrativo puede orientarte.
-      </p>
-      <a
-        href={`mailto:josue@benchdatalab.com?subject=Consulta%20legal%20oposici%C3%B3n%20${encodeURIComponent(nicho.colectivo)}`}
-        class="inline-flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
-      >
-        Solicitar información
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-        </svg>
-      </a>
-    </div>
-  </div>
-
-  <!-- CONTENIDO POR DEFECTO (oculto durante búsqueda activa) -->
-  <div id="content-default">
-
-    <!-- OBSERVATORIO JURÍDICO -->
-    <section class="border-b border-slate-800/60 bg-slate-950">
-      <div class="max-w-4xl mx-auto px-4 py-8">
-        <div class="flex items-center justify-between mb-5">
-          <div>
-            <h2 class="text-sm font-semibold text-slate-200">Observatorio jurídico</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Incidencias con documentación oficial contrastada</p>
-          </div>
-          <a href="/incidencias" class="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap">
-            Ver todos →
-          </a>
-        </div>
-
-        <!-- Stats clicables -->
-        <div class="flex flex-wrap gap-3 mb-6">
-          <a href="/casos/sentencias"
-             class="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 hover:border-rose-800/60 transition-colors">
-            <span class="text-lg font-extrabold text-rose-400 leading-none">{statsSentencias}</span>
-            <span class="text-xs text-slate-500">Sentencias</span>
-          </a>
-          <a href="/casos/impugnaciones"
-             class="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 hover:border-amber-800/60 transition-colors">
-            <span class="text-lg font-extrabold text-amber-400 leading-none">{statsImpugnaciones}</span>
-            <span class="text-xs text-slate-500">Impugnaciones</span>
-          </a>
-          <a href="/casos/anulaciones"
-             class="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 hover:border-slate-700 transition-colors">
-            <span class="text-lg font-extrabold text-slate-300 leading-none">{statsAnulaciones}</span>
-            <span class="text-xs text-slate-500">Anulaciones</span>
-          </a>
-        </div>
-
-        <!-- Incidencias verificadas -->
-        <div class="grid sm:grid-cols-2 gap-3">
-          {incidencias.slice(0, 4).map(inc => (
-            <a
-              href={`/incidencias/${inc.slug}`}
-              class="rounded-lg border border-slate-800 bg-slate-900/60 p-4 hover:border-slate-700 transition-colors block"
-            >
-              <div class="flex items-center gap-2 mb-2">
-                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 text-amber-400 bg-amber-950/60 ring-amber-700/50">
-                  {TIPO_INCIDENCIA[inc.tipo] ?? inc.tipo}
-                </span>
-                <time class="text-xs text-slate-600 ml-auto">{inc.fecha.slice(0, 4)}</time>
-              </div>
-              <p class="text-sm font-medium text-slate-200 leading-snug line-clamp-2">{inc.titulo}</p>
-              <p class="text-xs text-slate-500 mt-1">{inc.organismo} · {inc.ubicacion}</p>
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    <!-- SEÑALES RECIENTES + SUGERENCIAS -->
-    <div class="max-w-4xl mx-auto px-4 py-8">
-      {error && (
-        <div class="mb-6 rounded-lg bg-rose-950/60 border border-rose-800/60 px-4 py-3 text-rose-300 text-sm">
-          ⚠ No se pudo conectar con la base de datos.
-        </div>
-      )}
-      <p class="text-xs text-slate-500 mb-3">Búsquedas frecuentes:</p>
-      <div class="flex flex-wrap gap-2 mb-8">
+      <!-- Chips -->
+      <div class="flex flex-wrap gap-2 mb-6">
         {nicho.sugerencias.map(tag => (
-          <button class="suggestion text-xs px-3 py-1.5 rounded-full border border-slate-700 text-slate-400
-                         hover:border-amber-600 hover:text-amber-400 transition-colors bg-slate-900">
+          <button class="suggestion text-xs px-2.5 py-1 rounded-full border border-slate-800 text-slate-600
+                         hover:border-amber-700/60 hover:text-amber-400 transition-colors bg-transparent">
             {tag}
           </button>
         ))}
       </div>
 
-      <p class="text-xs text-slate-500 mb-3">Señales recientes:</p>
-      <ol class="space-y-4">
-        {recientes.map(h => {
-          const sm = sourceMeta(h.fuente)
-          const fecha = h.fecha
-            ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
-            : null
-          return (
-            <li class="rounded-xl border border-slate-800 bg-slate-900/50 p-5 hover:border-slate-700 transition-colors">
-              <div class="flex flex-wrap items-center gap-2 mb-2">
-                <span class={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${sm.color}`}>
-                  {sm.icon} {sm.label}
-                </span>
-                {fecha && <time class="text-xs text-slate-500 ml-auto">{fecha}</time>}
-              </div>
-              <a href={`/hallazgos/${hallazgoSlug(h.titulo ?? '', h.id)}`}
-                 class="block text-sm font-semibold text-slate-100 leading-snug mb-1 hover:text-amber-400 transition-colors">
-                {h.titulo}
-              </a>
-              {h.descripcion && (
-                <p class="text-xs text-slate-500 leading-relaxed line-clamp-2">
-                  {h.descripcion.slice(0, 200)}
-                </p>
-              )}
-            </li>
-          )
-        })}
-      </ol>
-    </div>
-
-    <!-- CTA B2B -->
-    <div class="max-w-4xl mx-auto px-4 pb-10">
-      <div class="rounded-xl border border-slate-700/50 bg-slate-900/40 px-6 py-5">
-        <p class="text-sm font-semibold text-slate-300 mb-1">
-          ¿Eres abogado, sindicato o academia?
-        </p>
-        <p class="text-xs text-slate-500 mb-3">
-          Accede al informe semanal de señales jurídicas en formato CSV o resumen ejecutivo.
-        </p>
-        <a
-          href="mailto:josue@benchdatalab.com?subject=Acceso%20informe%20profesional%20Radar%20Bomberos"
-          class="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
-        >
-          Solicitar acceso profesional
+      <!-- Resultados preview (máx 3) -->
+      <div id="preview-area" class="hidden space-y-3 mb-4">
+        <ol id="preview-list" class="space-y-2"></ol>
+        <a id="ver-todos-link"
+           href="/incidencias"
+           class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors">
+          Ver todos los resultados en el observatorio
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
           </svg>
         </a>
       </div>
-    </div>
 
-  </div><!-- /content-default -->
+      <!-- Sin resultados -->
+      <div id="preview-empty" class="hidden text-sm text-slate-500 mb-4">
+        Sin resultados. <a id="ver-todos-empty" href="/incidencias" class="text-amber-400 hover:text-amber-300 underline">Buscar en el observatorio completo →</a>
+      </div>
+
+    </div>
+  </section>
 
   <!-- FOOTER -->
   <footer class="border-t border-slate-800/60">
     <div class="max-w-4xl mx-auto px-4 py-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-600">
       <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
       <nav class="flex flex-wrap gap-x-4 gap-y-1 justify-center">
-        <a href="/oposiciones"          class="hover:text-slate-400 transition-colors">Oposiciones</a>
+        <a href="/oposiciones"         class="hover:text-slate-400 transition-colors">Oposiciones</a>
         <a href="/incidencias"         class="hover:text-slate-400 transition-colors">Observatorio</a>
         <a href="/origen-datos"        class="hover:text-slate-400 transition-colors">Fuentes</a>
         <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>
@@ -372,7 +278,6 @@ const jsonLd = {
     </div>
   </footer>
 
-  <!-- Datos embebidos para búsqueda cliente -->
   <script type="application/json" id="hallazgos-data" set:html={serialized}></script>
 
 </Layout>
@@ -383,132 +288,78 @@ const jsonLd = {
     fecha: string | null; url: string;
   }> = JSON.parse(document.getElementById('hallazgos-data')!.textContent ?? '[]')
 
-  const SOURCE_COLOR: Record<string,string> = {
-    'BOE':                     'text-amber-400 bg-amber-950/60 ring-amber-700/50',
-    'CENDOJ':                  'text-rose-400 bg-rose-950/60 ring-rose-700/50',
-    'CENDOJ (vía DuckDuckGo)': 'text-rose-400 bg-rose-950/60 ring-rose-700/50',
-    'Google News':             'text-sky-400 bg-sky-950/60 ring-sky-700/50',
-    'Google News (legal)':     'text-rose-400 bg-rose-950/60 ring-rose-700/50',
-  }
-  const SOURCE_ICON: Record<string,string> = {
-    'BOE': '📋', 'CENDOJ': '⚖️', 'CENDOJ (vía DuckDuckGo)': '⚖️',
-    'Google News': '📰', 'Google News (legal)': '⚖️',
-  }
-  const SOURCE_LABEL: Record<string,string> = {
-    'BOE': 'Boletín oficial', 'CENDOJ': 'Sentencia',
-    'CENDOJ (vía DuckDuckGo)': 'Sentencia', 'Google News': 'Prensa',
-    'Google News (legal)': 'Sentencia',
-  }
-
-  function getSourceMeta(fuente: string) {
-    if (fuente.startsWith('Reddit')) return {
-      color: 'text-orange-400 bg-orange-950/60 ring-orange-700/50', icon: '💬', label: 'Foro',
-    }
-    return {
-      color: SOURCE_COLOR[fuente] ?? 'text-slate-400 bg-slate-800 ring-slate-700/50',
-      icon:  SOURCE_ICON[fuente]  ?? '🔗',
-      label: SOURCE_LABEL[fuente] ?? fuente,
-    }
-  }
-
   function normalizar(s: string) {
     return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   }
-
-  function fmtDate(d: string | null) {
-    if (!d) return null
-    return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
-  }
-
   function escapar(s: string) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
   }
-
+  function fmtDate(d: string | null) {
+    if (!d) return ''
+    return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
   function highlight(text: string, term: string) {
     if (!term) return escapar(text)
-    const escaped = escapar(text)
-    const safeRx  = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    return escaped.replace(
-      new RegExp(`(${safeRx})`, 'gi'),
-      '<mark class="bg-amber-500/30 text-amber-200 rounded px-0.5">$1</mark>'
-    )
+    const safe = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return escapar(text).replace(new RegExp(`(${safe})`, 'gi'),
+      '<mark class="bg-amber-500/30 text-amber-200 rounded px-0.5">$1</mark>')
   }
 
-  function renderCard(h: typeof HALLAZGOS[0], term: string) {
-    const { color, icon, label } = getSourceMeta(h.fuente)
-    const fecha  = fmtDate(h.fecha)
+  function renderPreview(h: typeof HALLAZGOS[0], term: string) {
+    const fecha = fmtDate(h.fecha)
     const titulo = highlight(h.titulo, term)
-    const desc   = h.descripcion ? highlight(h.descripcion.slice(0, 200), term) : ''
-    return `<li class="rounded-xl border border-slate-800 bg-slate-900/50 p-5 hover:border-slate-700 transition-colors">
-      <div class="flex flex-wrap items-center gap-2 mb-2">
-        <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${color}">
-          ${icon} ${label}
-        </span>
-        ${fecha ? `<time class="text-xs text-slate-500 ml-auto">${fecha}</time>` : ''}
+    return `<li class="rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-slate-700 transition-colors">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">${escapar(h.fuente)}</span>
+        ${fecha ? `<time class="text-[10px] text-slate-700 ml-auto">${fecha}</time>` : ''}
       </div>
-      <a href="/hallazgos/${h.slug}" class="block text-sm font-semibold text-slate-100 leading-snug mb-1 hover:text-amber-400 transition-colors">${titulo}</a>
-      ${desc ? `<p class="text-xs text-slate-500 leading-relaxed line-clamp-2 mb-2">${desc}</p>` : ''}
-      ${h.url ? `<a href="${escapar(h.url)}" target="_blank" rel="noopener noreferrer"
-         class="inline-flex items-center gap-1 text-xs text-amber-500 hover:text-amber-400 transition-colors font-medium">
-        Ver fuente original
-        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-        </svg>
-      </a>` : ''}
+      <a href="/hallazgos/${h.slug}" class="block text-sm font-semibold text-slate-200 leading-snug hover:text-amber-400 transition-colors">${titulo}</a>
     </li>`
   }
 
-  const input          = document.getElementById('search-input')       as HTMLInputElement
-  const statsEl        = document.getElementById('search-stats')       as HTMLElement
-  const searchArea     = document.getElementById('search-results-area') as HTMLElement
-  const contentDefault = document.getElementById('content-default')    as HTMLElement
-  const emptyResults   = document.getElementById('empty-results')      as HTMLElement
-  const resultsList    = document.getElementById('results-list')       as HTMLElement
-  const ctaAbogado     = document.getElementById('cta-abogado')        as HTMLElement
-
-  function mostrar(matches: typeof HALLAZGOS, term: string) {
-    if (matches.length === 0) {
-      emptyResults.classList.remove('hidden')
-      resultsList.innerHTML = ''
-      ctaAbogado.classList.add('hidden')
-      return
-    }
-    emptyResults.classList.add('hidden')
-    ctaAbogado.classList.remove('hidden')
-    resultsList.innerHTML = matches.map(h => renderCard(h, term)).join('')
-  }
+  const input       = document.getElementById('search-input')   as HTMLInputElement
+  const previewArea = document.getElementById('preview-area')   as HTMLElement
+  const previewList = document.getElementById('preview-list')   as HTMLElement
+  const previewEmpty= document.getElementById('preview-empty')  as HTMLElement
+  const verTodos    = document.getElementById('ver-todos-link') as HTMLAnchorElement
+  const verTodosE   = document.getElementById('ver-todos-empty')as HTMLAnchorElement
 
   function buscar(raw: string) {
-    const term = normalizar(raw.trim())
+    const term  = normalizar(raw.trim())
+    const incidenciasUrl = `/incidencias${raw.trim() ? `?q=${encodeURIComponent(raw.trim())}` : ''}`
+    verTodos.href  = incidenciasUrl
+    verTodosE.href = incidenciasUrl
 
     if (!term) {
-      contentDefault.classList.remove('hidden')
-      searchArea.classList.add('hidden')
-      resultsList.innerHTML = ''
-      statsEl.textContent = `${HALLAZGOS.length} señales detectadas en fuentes públicas`
+      previewArea.classList.add('hidden')
+      previewEmpty.classList.add('hidden')
       return
     }
-
-    contentDefault.classList.add('hidden')
-    searchArea.classList.remove('hidden')
-    emptyResults.classList.add('hidden')
 
     const words   = term.split(/\s+/).filter(Boolean)
     const matches = HALLAZGOS.filter(h => {
-      const hay = normalizar(`${h.titulo} ${h.descripcion} ${h.fuente}`)
+      const hay = normalizar(`${h.titulo} ${h.descripcion}`)
       return words.every(w => hay.includes(w))
     })
 
-    statsEl.textContent = matches.length === HALLAZGOS.length
-      ? `${HALLAZGOS.length} señales detectadas en fuentes públicas`
-      : `${matches.length} resultado${matches.length !== 1 ? 's' : ''} para "${raw.trim()}"`
+    if (matches.length === 0) {
+      previewArea.classList.add('hidden')
+      previewEmpty.classList.remove('hidden')
+      return
+    }
 
-    mostrar(matches, raw.trim())
+    previewEmpty.classList.add('hidden')
+    previewList.innerHTML = matches.slice(0, 3).map(h => renderPreview(h, raw.trim())).join('')
+    const extra = matches.length - 3
+    verTodos.textContent = extra > 0
+      ? `Ver los ${matches.length} resultados en el observatorio →`
+      : `Ver en el observatorio →`
+    previewArea.classList.remove('hidden')
   }
 
+  input.addEventListener('input', () => buscar(input.value))
   input.addEventListener('keydown', e => { if (e.key === 'Enter') buscar(input.value) })
-  document.getElementById('search-btn')!.addEventListener('click', () => buscar(input.value))
-  input.addEventListener('input', e => { if (!(e as InputEvent).data) buscar(input.value) })
+  input.addEventListener('search', () => buscar(input.value))
 
   document.querySelectorAll<HTMLButtonElement>('.suggestion').forEach(btn => {
     btn.addEventListener('click', () => {

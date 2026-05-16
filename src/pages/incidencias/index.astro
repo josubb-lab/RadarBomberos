@@ -1,8 +1,26 @@
 ---
 import Layout from '../../layouts/Layout.astro'
-import { nicho } from '../../lib/nicho'
+import { createClient } from '@supabase/supabase-js'
+import { hallazgoSlug } from '../../lib/slugify'
+import { nicho, nichoId } from '../../lib/nicho'
 import { incidencias } from '../../data/incidencias'
-import type { TipoIncidencia, FuenteTipo } from '../../data/incidencias'
+import type { TipoIncidencia } from '../../data/incidencias'
+
+const supabase = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_KEY,
+)
+
+const { data: hallazgos } = await supabase
+  .from('hallazgos')
+  .select('id, titulo, descripcion, fuente, fecha, url, tipo')
+  .eq('nicho', nichoId)
+  .gte('relevancia', 2)
+  .or('fecha.gte.2020-01-01,curado.eq.true')
+  .order('fecha', { ascending: false, nullsFirst: false })
+  .limit(500)
+
+const total = hallazgos?.length ?? 0
 
 const TIPO_LABEL: Record<TipoIncidencia, string> = {
   correccion_convocatoria: 'Corrección BOE',
@@ -12,31 +30,42 @@ const TIPO_LABEL: Record<TipoIncidencia, string> = {
   recurso:                 'Recurso',
 }
 
-const FUENTE_META: Record<FuenteTipo, { icon: string; color: string }> = {
-  BOE:          { icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50'  },
-  CENDOJ:       { icon: '⚖️', color: 'text-rose-400 bg-rose-950/60 ring-rose-700/50'    },
-  INAP:         { icon: '🏛️', color: 'text-violet-400 bg-violet-950/60 ring-violet-700/50' },
-  BOP:          { icon: '📋', color: 'text-amber-400 bg-amber-950/60 ring-amber-700/50'  },
-  sede_oficial: { icon: '🏛️', color: 'text-slate-400 bg-slate-800 ring-slate-700/50'    },
-}
+const TIPO_COLOR: Record<TipoIncidencia, string> = {
+  sentencia:               'text-rose-400 bg-rose-950/60 ring-rose-700/50',
+  impugnacion:             'text-amber-400 bg-amber-950/60 ring-amber-700/50',
+  anulacion:               'text-rose-400 bg-rose-950/60 ring-rose-700/50',
+  correccion_convocatoria: 'text-amber-400 bg-amber-950/60 ring-amber-700/50',
+  pregunta_anulada:        'text-slate-400 bg-slate-800/60 ring-slate-700/50',
+  recurso:                 'text-slate-400 bg-slate-800/60 ring-slate-700/50',
+} as any
 
-const pageTitle = `Incidencias en oposiciones a Bombero · ${nicho.nombre}`
-const pageDesc  = `Casos documentados de impugnaciones, correcciones de convocatorias y sentencias en oposiciones a bombero en España. Fuentes verificables: BOE, CENDOJ, INAP.`
+const serialized = JSON.stringify(
+  (hallazgos ?? []).map(h => ({
+    slug:        hallazgoSlug(h.titulo ?? '', h.id),
+    titulo:      h.titulo      ?? '',
+    descripcion: h.descripcion ?? '',
+    fuente:      h.fuente      ?? '',
+    fecha:       h.fecha       ?? null,
+    url:         h.url         ?? '',
+    tipo:        h.tipo        ?? '',
+  }))
+)
+
+const pageTitle = `Observatorio jurídico — Oposiciones a Bombero · ${nicho.nombre}`
+const pageDesc  = `Buscador de sentencias, impugnaciones, anulaciones y correcciones en oposiciones a bombero en España. ${total} señales documentadas desde fuentes oficiales.`
 
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'CollectionPage',
-  name: 'Incidencias en oposiciones a Bombero',
+  '@type':    'SearchResultsPage',
+  name:        pageTitle,
   description: pageDesc,
-  url: `${nicho.siteUrl}/incidencias`,
-  isPartOf: { '@type': 'WebSite', url: nicho.siteUrl },
-  inLanguage: 'es',
+  url:         `${nicho.siteUrl}/incidencias`,
+  inLanguage:  'es',
+  isPartOf:    { '@type': 'WebSite', url: nicho.siteUrl },
 }
 ---
 
-<Layout title={pageTitle} description={pageDesc} canonical={nicho.siteUrl + '/incidencias'}>
-
-  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+<Layout title={pageTitle} description={pageDesc} {jsonLd} canonical={`${nicho.siteUrl}/incidencias`}>
 
   <!-- NAV -->
   <nav class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
@@ -48,70 +77,126 @@ const jsonLd = {
         {nicho.nombre}
       </a>
       <span class="text-slate-700">/</span>
-      <span class="text-slate-400 text-sm font-medium">Incidencias</span>
+      <span class="text-slate-400 text-sm font-medium">Observatorio</span>
     </div>
   </nav>
 
-  <!-- HEADER -->
+  <!-- HEADER + BUSCADOR -->
   <section class="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/60">
-    <div class="max-w-4xl mx-auto px-4 py-12">
+    <div class="max-w-4xl mx-auto px-4 py-10">
       <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-3">
-        Documentación verificada · Fuentes oficiales
+        Fuentes oficiales verificadas
       </p>
-      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-50 leading-tight mb-4">
-        Incidencias en oposiciones a Bombero
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-50 leading-tight mb-2">
+        Observatorio jurídico de oposiciones a bombero
       </h1>
-      <p class="text-slate-400 text-base max-w-2xl">
-        Casos documentados de correcciones de convocatoria, sentencias judiciales e impugnaciones
-        en procesos selectivos de bomberos en España. Cada entrada incluye la fuente oficial verificable.
+      <p class="text-slate-400 text-sm max-w-xl leading-relaxed mb-7">
+        {total} señales documentadas — sentencias, impugnaciones, anulaciones y correcciones de BOE en procesos selectivos de bomberos en España.
       </p>
+
+      <!-- Buscador -->
+      <div class="relative max-w-xl mb-3">
+        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          id="search-input"
+          type="search"
+          placeholder="Busca por ciudad, tipo, organismo…"
+          autocomplete="off"
+          class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-11 pr-4 py-3.5
+                 text-sm text-slate-100 placeholder-slate-600
+                 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-600/60
+                 transition shadow-lg shadow-black/20"
+        />
+      </div>
+
+      <!-- Filtros tipo -->
+      <div class="flex flex-wrap gap-2">
+        <button data-tipo="" class="filtro active text-xs px-3 py-1.5 rounded-full border border-amber-600/60 text-amber-400 bg-amber-950/30 transition-colors">
+          Todos
+        </button>
+        <button data-tipo="sentencia" class="filtro text-xs px-3 py-1.5 rounded-full border border-slate-800 text-slate-500 hover:border-rose-700/50 hover:text-rose-400 transition-colors">
+          Sentencias
+        </button>
+        <button data-tipo="impugnacion" class="filtro text-xs px-3 py-1.5 rounded-full border border-slate-800 text-slate-500 hover:border-amber-700/50 hover:text-amber-400 transition-colors">
+          Impugnaciones
+        </button>
+        <button data-tipo="anulacion" class="filtro text-xs px-3 py-1.5 rounded-full border border-slate-800 text-slate-500 hover:border-rose-700/50 hover:text-rose-400 transition-colors">
+          Anulaciones
+        </button>
+        <button data-tipo="correccion_convocatoria" class="filtro text-xs px-3 py-1.5 rounded-full border border-slate-800 text-slate-500 hover:border-amber-700/50 hover:text-amber-400 transition-colors">
+          Correcciones BOE
+        </button>
+      </div>
     </div>
   </section>
 
-  <!-- LISTADO -->
-  <main class="max-w-4xl mx-auto px-4 py-10">
+  <!-- RESULTADOS -->
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <p id="results-stats" class="text-xs text-slate-600 mb-5">{total} señales · fuentes públicas</p>
 
-    <p class="text-xs text-slate-500 mb-6">
-      {incidencias.length} {incidencias.length === 1 ? 'caso documentado' : 'casos documentados'}
-    </p>
+    <!-- Sin resultados -->
+    <div id="empty-state" class="hidden py-16 text-center">
+      <p class="text-sm text-slate-400 mb-1">Sin resultados para esa búsqueda.</p>
+      <p class="text-xs text-slate-600">Prueba con otros términos — ciudad, tipo de incidencia u organismo.</p>
+    </div>
 
-    <ol class="space-y-4">
-      {incidencias.map(inc => {
-        const fm = FUENTE_META[inc.fuente_tipo]
-        const fecha = new Date(inc.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
-        return (
-          <li class="rounded-xl border border-slate-800 bg-slate-900/50 p-5 hover:border-slate-700 transition-colors">
-            <div class="flex flex-wrap items-center gap-2 mb-2">
-              <span class={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${fm.color}`}>
-                {fm.icon} {TIPO_LABEL[inc.tipo]}
-              </span>
-              <span class="text-xs text-slate-600">{inc.organismo}</span>
-              <time class="text-xs text-slate-500 ml-auto">{fecha}</time>
-            </div>
-            <a
-              href={`/incidencias/${inc.slug}`}
-              class="block text-sm font-semibold text-slate-100 leading-snug mb-2 hover:text-amber-400 transition-colors"
-            >
-              {inc.titulo}
-            </a>
-            <p class="text-xs text-slate-500 leading-relaxed line-clamp-2">
-              {inc.resumen.slice(0, 200)}
-            </p>
-            {inc.referencia_oficial && (
-              <p class="mt-2 text-[11px] text-slate-600 font-mono">{inc.referencia_oficial}</p>
-            )}
-          </li>
-        )
-      })}
-    </ol>
+    <!-- Lista dinámica -->
+    <ol id="results-list" class="space-y-3"></ol>
 
+    <!-- CTA post-resultados -->
+    <div id="cta-legal" class="hidden mt-8 rounded-xl border border-amber-800/30 bg-amber-950/20 px-6 py-5">
+      <p class="text-sm font-semibold text-slate-200 mb-1">¿Has encontrado algo relevante para tu caso?</p>
+      <p class="text-xs text-slate-500 mb-3 leading-relaxed">
+        Un especialista en contencioso-administrativo puede orientarte sobre los recursos disponibles.
+      </p>
+      <a
+        href={`mailto:josue@benchdatalab.com?subject=${encodeURIComponent('Consulta legal — oposiciones bombero')}`}
+        class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+      >
+        Solicitar orientación →
+      </a>
+    </div>
   </main>
 
+  <!-- CASOS VERIFICADOS -->
+  <section class="border-t border-slate-800/60 bg-slate-900/30">
+    <div class="max-w-4xl mx-auto px-4 py-10">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Casos verificados</h2>
+          <p class="text-xs text-slate-600 mt-0.5">Documentación con fuente oficial contrastada</p>
+        </div>
+        <span class="text-xs text-slate-600">{incidencias.length} casos</span>
+      </div>
+      <ol class="grid sm:grid-cols-2 gap-3">
+        {incidencias.map(inc => (
+          <li>
+            <a
+              href={`/incidencias/${inc.slug}`}
+              class="block rounded-xl border border-slate-800 bg-slate-900/60 p-4 hover:border-slate-700 transition-colors h-full"
+            >
+              <div class="flex items-center gap-2 mb-2">
+                <span class={`text-[10px] font-semibold px-2 py-0.5 rounded-full ring-1 ${TIPO_COLOR[inc.tipo] ?? 'text-slate-400 bg-slate-800 ring-slate-700/50'}`}>
+                  {TIPO_LABEL[inc.tipo] ?? inc.tipo}
+                </span>
+                <time class="text-[10px] text-slate-600 ml-auto">{inc.fecha.slice(0, 4)}</time>
+              </div>
+              <p class="text-sm font-semibold text-slate-200 leading-snug mb-1 line-clamp-2">{inc.titulo}</p>
+              <p class="text-xs text-slate-600">{inc.organismo} · {inc.ubicacion}</p>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
   <!-- FOOTER -->
-  <footer class="border-t border-slate-800/60 mt-10">
-    <div class="max-w-4xl mx-auto px-4 py-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-600">
+  <footer class="border-t border-slate-800/60">
+    <div class="max-w-4xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-600">
       <p>© {new Date().getFullYear()} {nicho.nombre} · Proyecto independiente</p>
-      <nav class="flex flex-wrap gap-x-4 gap-y-1 justify-center">
+      <nav class="flex gap-4">
         <a href="/origen-datos"        class="hover:text-slate-400 transition-colors">Fuentes</a>
         <a href="/aviso-legal"         class="hover:text-slate-400 transition-colors">Aviso legal</a>
         <a href="/politica-privacidad" class="hover:text-slate-400 transition-colors">Privacidad</a>
@@ -119,4 +204,123 @@ const jsonLd = {
     </div>
   </footer>
 
+  <script type="application/json" id="hallazgos-data" set:html={serialized}></script>
+
 </Layout>
+
+<script>
+  const HALLAZGOS: Array<{
+    slug: string; titulo: string; descripcion: string
+    fuente: string; fecha: string | null; url: string; tipo: string
+  }> = JSON.parse(document.getElementById('hallazgos-data')!.textContent ?? '[]')
+
+  const SOURCE_COLOR: Record<string,string> = {
+    'BOE':                     'text-amber-400 bg-amber-950/60 ring-amber-700/50',
+    'CENDOJ':                  'text-rose-400 bg-rose-950/60 ring-rose-700/50',
+    'CENDOJ (vía DuckDuckGo)': 'text-rose-400 bg-rose-950/60 ring-rose-700/50',
+    'Google News':             'text-sky-400 bg-sky-950/60 ring-sky-700/50',
+    'Google News (legal)':     'text-rose-400 bg-rose-950/60 ring-rose-700/50',
+  }
+
+  function sourceMeta(fuente: string) {
+    if (fuente.startsWith('Reddit')) return { color: 'text-orange-400 bg-orange-950/60 ring-orange-700/50', label: 'Foro' }
+    return {
+      color: SOURCE_COLOR[fuente] ?? 'text-slate-400 bg-slate-800 ring-slate-700/50',
+      label: fuente ?? 'Fuente',
+    }
+  }
+
+  function normalizar(s: string) {
+    return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  }
+  function escapar(s: string) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  }
+  function highlight(text: string, term: string) {
+    if (!term) return escapar(text)
+    const safe = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return escapar(text).replace(new RegExp(`(${safe})`, 'gi'),
+      '<mark class="bg-amber-500/30 text-amber-200 rounded px-0.5">$1</mark>')
+  }
+  function fmtDate(d: string | null) {
+    if (!d) return ''
+    return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
+  function renderCard(h: typeof HALLAZGOS[0], term: string) {
+    const { color, label } = sourceMeta(h.fuente)
+    const fecha  = fmtDate(h.fecha)
+    const titulo = highlight(h.titulo, term)
+    const desc   = h.descripcion ? highlight(h.descripcion.slice(0, 220), term) : ''
+    return `<li class="rounded-xl border border-slate-800 bg-slate-900/50 p-5 hover:border-slate-700 transition-colors">
+      <div class="flex flex-wrap items-center gap-2 mb-2">
+        <span class="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${color}">${escapar(label)}</span>
+        ${fecha ? `<time class="text-xs text-slate-500 ml-auto">${fecha}</time>` : ''}
+      </div>
+      <a href="/hallazgos/${h.slug}" class="block text-sm font-semibold text-slate-100 leading-snug mb-1 hover:text-amber-400 transition-colors">${titulo}</a>
+      ${desc ? `<p class="text-xs text-slate-500 leading-relaxed line-clamp-2">${desc}</p>` : ''}
+    </li>`
+  }
+
+  const input       = document.getElementById('search-input')  as HTMLInputElement
+  const list        = document.getElementById('results-list')  as HTMLElement
+  const stats       = document.getElementById('results-stats') as HTMLElement
+  const emptyState  = document.getElementById('empty-state')   as HTMLElement
+  const ctaLegal    = document.getElementById('cta-legal')     as HTMLElement
+  const filtros     = document.querySelectorAll<HTMLButtonElement>('.filtro')
+
+  let currentTipo = ''
+  let currentTerm = ''
+
+  function render() {
+    const term  = normalizar(currentTerm.trim())
+    const words = term.split(/\s+/).filter(Boolean)
+
+    const matches = HALLAZGOS.filter(h => {
+      const tipoOk = !currentTipo || h.tipo === currentTipo
+      const termOk = words.length === 0 || words.every(w => normalizar(`${h.titulo} ${h.descripcion}`).includes(w))
+      return tipoOk && termOk
+    })
+
+    if (matches.length === 0) {
+      list.innerHTML = ''
+      emptyState.classList.remove('hidden')
+      ctaLegal.classList.add('hidden')
+    } else {
+      emptyState.classList.add('hidden')
+      list.innerHTML = matches.map(h => renderCard(h, currentTerm.trim())).join('')
+      ctaLegal.classList.toggle('hidden', matches.length < 3)
+    }
+
+    stats.textContent = term || currentTipo
+      ? `${matches.length} resultado${matches.length !== 1 ? 's' : ''}`
+      : `${HALLAZGOS.length} señales · fuentes públicas`
+  }
+
+  input.addEventListener('input', () => { currentTerm = input.value; render() })
+  input.addEventListener('search', () => { currentTerm = input.value; render() })
+
+  filtros.forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTipo = btn.dataset.tipo ?? ''
+      filtros.forEach(b => {
+        const active = b === btn
+        b.classList.toggle('active', active)
+        b.classList.toggle('border-amber-600/60', active)
+        b.classList.toggle('text-amber-400', active)
+        b.classList.toggle('bg-amber-950/30', active)
+        b.classList.toggle('border-slate-800', !active)
+        b.classList.toggle('text-slate-500', !active)
+      })
+      render()
+    })
+  })
+
+  // Leer ?q= de la URL y pre-poblar
+  const qParam = new URLSearchParams(window.location.search).get('q')
+  if (qParam) {
+    input.value   = qParam
+    currentTerm   = qParam
+  }
+  render()
+</script>
