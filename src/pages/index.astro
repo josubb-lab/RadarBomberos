@@ -10,7 +10,7 @@ const supabase = createClient(
   import.meta.env.PUBLIC_SUPABASE_KEY,
 )
 
-const { data: hallazgos, error } = await supabase
+const { data: hallazgos } = await supabase
   .from('hallazgos')
   .select('id, titulo, descripcion, fuente, fecha, url, tipo')
   .eq('nicho', nichoId)
@@ -31,6 +31,36 @@ const serialized = JSON.stringify(
     url:         h.url         ?? '',
   }))
 )
+
+// RSS BOE — filtrado por "bombero"
+let noticias: Array<{ titulo: string; link: string; fecha: string }> = []
+try {
+  const rss = await fetch('https://www.boe.es/rss/canal.php?c=boe', {
+    signal: AbortSignal.timeout(4000),
+  })
+  const xml = await rss.text()
+  noticias = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)]
+    .map(m => ({
+      titulo: (m[1].match(/<title><!\[CDATA\[(.*?)\]\]>/)?.[1] ?? m[1].match(/<title>(.*?)<\/title>/)?.[1] ?? '').trim(),
+      link:   (m[1].match(/<guid[^>]*>(.*?)<\/guid>/)?.[1] ?? '').trim(),
+      fecha:  (m[1].match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? '').trim(),
+    }))
+    .filter(i => i.titulo && /bombero/i.test(i.titulo))
+    .slice(0, 4)
+} catch { /* RSS opcional, no bloquea */ }
+
+const senales = (hallazgos ?? []).slice(0, 4).map(h => ({
+  slug:   hallazgoSlug(h.titulo ?? '', h.id),
+  titulo: h.titulo  ?? '',
+  fuente: h.fuente  ?? '',
+  fecha:  h.fecha   ?? null,
+  tipo:   h.tipo    ?? '',
+}))
+
+function fmtDate(d: string | null) {
+  if (!d) return ''
+  return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+}
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -63,9 +93,7 @@ const jsonLd = {
   <!-- HERO -->
   <section class="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/60">
     <div class="max-w-4xl mx-auto px-4 py-14 lg:py-20">
-      <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-5">
-        {nicho.tagline}
-      </p>
+      <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-5">{nicho.tagline}</p>
       <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-50 leading-tight mb-5 max-w-2xl">
         Oposiciones a bombero en España
       </h1>
@@ -85,143 +113,18 @@ const jsonLd = {
     </div>
   </section>
 
-  <!-- PARA QUIÉN -->
-  <section class="border-b border-slate-800/60 bg-slate-950">
-    <div class="max-w-4xl mx-auto px-4 py-12 space-y-3">
+  <!-- BUSCADOR -->
+  <section id="buscador" class="border-b border-slate-800/60 bg-slate-950">
+    <div class="max-w-4xl mx-auto px-4 py-10">
 
-      <!-- Opositor -->
-      <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-        <div class="flex items-start gap-5">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-sky-950/60 border border-sky-800/40 flex items-center justify-center">
-            <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
-            </svg>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold text-sky-400 uppercase tracking-widest mb-2">Opositor</p>
-            <div class="grid sm:grid-cols-2 gap-4 mb-4">
-              <div>
-                <p class="text-sm font-semibold text-slate-200 mb-1">Busca tu convocatoria</p>
-                <p class="text-xs text-slate-500 leading-relaxed">
-                  Consulta requisitos de acceso, temario y fases del proceso selectivo para los 20 cuerpos principales de España. Filtra por ciudad.
-                </p>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-slate-200 mb-1">Comprueba el historial del proceso</p>
-                <p class="text-xs text-slate-500 leading-relaxed">
-                  Antes de presentarte, busca si ese proceso ha tenido sentencias, impugnaciones o correcciones previas. Es información pública que pocos recopilan.
-                </p>
-              </div>
-            </div>
-            <div class="flex flex-wrap gap-3">
-              <a href="/oposiciones" class="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors">
-                Ver guía por ciudad
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-              </a>
-              <span class="text-slate-700">·</span>
-              <a href="#buscador" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors">
-                Buscar en el observatorio
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Abogado / Sindicato -->
-      <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-        <div class="flex items-start gap-5">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-amber-950/60 border border-amber-800/40 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.97zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.97z"/>
-            </svg>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold text-amber-400 uppercase tracking-widest mb-2">Abogado · Sindicato</p>
-            <div class="grid sm:grid-cols-2 gap-4 mb-4">
-              <div>
-                <p class="text-sm font-semibold text-slate-200 mb-1">Identifica procesos con afectados</p>
-                <p class="text-xs text-slate-500 leading-relaxed">
-                  El CSV semanal recoge todos los procesos selectivos de bomberos con señal jurídica activa — impugnados, anulados, suspendidos — ordenados por criticidad. Una fila por señal, una por proceso.
-                </p>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-slate-200 mb-1">Visibilidad como referencia</p>
-                <p class="text-xs text-slate-500 leading-relaxed">
-                  Cuando un opositor afectado consulta el observatorio y necesita orientación legal, puede contactar directamente. Si quieres figurar como contacto de referencia en casos concretos, háblanos.
-                </p>
-              </div>
-            </div>
-            <form id="abogado-lead" class="flex gap-2" data-tipo="abogado">
-              <input type="email" required placeholder="tu@email.com"
-                class="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 transition" />
-              <button type="submit"
-                class="rounded-lg border border-amber-700/50 bg-amber-950/40 text-amber-400 text-xs font-semibold px-3 py-2 hover:bg-amber-950/60 transition-colors whitespace-nowrap">
-                Solicitar CSV
-              </button>
-            </form>
-            <p id="abogado-ok"  class="hidden text-xs text-amber-400 mt-1">Recibido. Te contactamos pronto.</p>
-            <p id="abogado-err" class="hidden text-xs text-rose-400  mt-1">Error al enviar. Inténtalo de nuevo.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Academia -->
-      <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-        <div class="flex items-start gap-5">
-          <div class="shrink-0 w-10 h-10 rounded-lg bg-slate-800/80 border border-slate-700/60 flex items-center justify-center">
-            <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/>
-            </svg>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Academia de oposiciones</p>
-            <div class="grid sm:grid-cols-2 gap-4 mb-4">
-              <div>
-                <p class="text-sm font-semibold text-slate-200 mb-1">Llega a opositores activos</p>
-                <p class="text-xs text-slate-500 leading-relaxed">
-                  Aparece en la ficha del cuerpo que preparas cuando un candidato busca información sobre esa convocatoria concreta. Tráfico de alta intención, no genérico.
-                </p>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-slate-200 mb-1">Posicionamiento local</p>
-                <p class="text-xs text-slate-500 leading-relaxed">
-                  Las fichas están optimizadas para búsquedas como "academia oposiciones bomberos Madrid". Estar presente cuando alguien lo busca es el momento de mayor conversión.
-                </p>
-              </div>
-            </div>
-            <form id="academia-lead" class="flex gap-2" data-tipo="academia">
-              <input type="email" required placeholder="tu@email.com"
-                class="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 transition" />
-              <button type="submit"
-                class="rounded-lg border border-slate-600 bg-slate-800 text-slate-300 text-xs font-semibold px-3 py-2 hover:bg-slate-700 transition-colors whitespace-nowrap">
-                Solicitar inclusión
-              </button>
-            </form>
-            <p id="academia-ok"  class="hidden text-xs text-slate-300 mt-1">Recibido. Te contactamos pronto.</p>
-            <p id="academia-err" class="hidden text-xs text-rose-400  mt-1">Error al enviar. Inténtalo de nuevo.</p>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- OBSERVATORIO TEASER -->
-  <section id="buscador" class="border-t border-slate-800/60 bg-slate-950">
-    <div class="max-w-4xl mx-auto px-4 py-12">
-
-      <div class="mb-7">
-        <p class="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-3">Observatorio jurídico</p>
-        <h2 class="text-xl sm:text-2xl font-extrabold text-slate-50 mb-2">
-          ¿Tu proceso tiene señales?
-        </h2>
-        <p class="text-sm text-slate-500 max-w-lg leading-relaxed">
-          Busca entre {total} señales documentadas — sentencias, impugnaciones, anulaciones y correcciones publicadas en fuentes oficiales.
+      <div class="mb-6">
+        <p class="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-2">Observatorio jurídico</p>
+        <h2 class="text-xl font-extrabold text-slate-50 mb-1">¿Tu proceso tiene señales?</h2>
+        <p class="text-sm text-slate-500 max-w-lg">
+          {total} señales documentadas — sentencias, impugnaciones, anulaciones y correcciones de fuentes oficiales.
         </p>
       </div>
 
-      <!-- Input -->
       <div class="relative max-w-xl mb-3">
         <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -233,13 +136,11 @@ const jsonLd = {
           autocomplete="off"
           class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-11 pr-4 py-3.5
                  text-sm text-slate-100 placeholder-slate-600
-                 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-600/60
-                 transition"
+                 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-600/60 transition"
         />
       </div>
 
-      <!-- Chips -->
-      <div class="flex flex-wrap gap-2 mb-6">
+      <div class="flex flex-wrap gap-2 mb-5">
         {nicho.sugerencias.map(tag => (
           <button class="suggestion text-xs px-2.5 py-1 rounded-full border border-slate-800 text-slate-600
                          hover:border-amber-700/60 hover:text-amber-400 transition-colors bg-transparent">
@@ -248,11 +149,9 @@ const jsonLd = {
         ))}
       </div>
 
-      <!-- Resultados preview (máx 3) -->
       <div id="preview-area" class="hidden space-y-3 mb-4">
         <ol id="preview-list" class="space-y-2"></ol>
-        <a id="ver-todos-link"
-           href="/incidencias"
+        <a id="ver-todos-link" href="/incidencias"
            class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors">
           Ver todos los resultados en el observatorio
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -261,11 +160,151 @@ const jsonLd = {
         </a>
       </div>
 
-      <!-- Sin resultados -->
       <div id="preview-empty" class="hidden text-sm text-slate-500 mb-4">
         Sin resultados. <a id="ver-todos-empty" href="/incidencias" class="text-amber-400 hover:text-amber-300 underline">Buscar en el observatorio completo →</a>
       </div>
 
+    </div>
+  </section>
+
+  <!-- PERFILES — 3 columnas -->
+  <section class="border-b border-slate-800/60 bg-slate-950">
+    <div class="max-w-4xl mx-auto px-4 py-10">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+        <!-- Opositor -->
+        <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-5 flex flex-col">
+          <div class="w-9 h-9 rounded-lg bg-sky-950/60 border border-sky-800/40 flex items-center justify-center mb-3">
+            <svg class="w-4.5 h-4.5 text-sky-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+            </svg>
+          </div>
+          <p class="text-xs font-semibold text-sky-400 uppercase tracking-widest mb-1">Opositor</p>
+          <p class="text-xs text-slate-500 leading-relaxed mb-4 flex-1">
+            Consulta requisitos, temario y fases para los 20 cuerpos principales. Comprueba si el proceso tiene historial de impugnaciones antes de presentarte.
+          </p>
+          <a href="/oposiciones" class="text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors mb-4 inline-flex items-center gap-1">
+            Ver guía por ciudad
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          </a>
+          <div class="border-t border-slate-800 pt-4">
+            <p class="text-xs font-semibold text-sky-400 uppercase tracking-widest mb-2">¿Te podemos ayudar?</p>
+            <form id="opositor-lead" class="flex gap-2" data-tipo="opositor">
+              <input type="email" required placeholder="tu@email.com"
+                class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 transition" />
+              <button type="submit"
+                class="rounded-lg border border-sky-700/50 bg-sky-950/40 text-sky-400 text-xs font-semibold px-3 py-2 hover:bg-sky-950/60 transition-colors whitespace-nowrap">
+                Enviar
+              </button>
+            </form>
+            <p id="opositor-ok"  class="hidden text-xs text-sky-400 mt-1">Recibido.</p>
+            <p id="opositor-err" class="hidden text-xs text-rose-400 mt-1">Error. Inténtalo de nuevo.</p>
+          </div>
+        </div>
+
+        <!-- Abogado / Sindicato -->
+        <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-5 flex flex-col">
+          <div class="w-9 h-9 rounded-lg bg-amber-950/60 border border-amber-800/40 flex items-center justify-center mb-3">
+            <svg class="w-4.5 h-4.5 text-amber-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.97zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.97z"/>
+            </svg>
+          </div>
+          <p class="text-xs font-semibold text-amber-400 uppercase tracking-widest mb-1">Abogado · Sindicato</p>
+          <p class="text-xs text-slate-500 leading-relaxed mb-4 flex-1">
+            CSV semanal con todos los procesos con señal jurídica activa — impugnados, anulados, suspendidos — ordenados por criticidad.
+          </p>
+          <form id="abogado-lead" class="flex gap-2 mt-auto" data-tipo="abogado">
+            <input type="email" required placeholder="tu@email.com"
+              class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 transition" />
+            <button type="submit"
+              class="rounded-lg border border-amber-700/50 bg-amber-950/40 text-amber-400 text-xs font-semibold px-3 py-2 hover:bg-amber-950/60 transition-colors whitespace-nowrap">
+              Solicitar CSV
+            </button>
+          </form>
+          <p id="abogado-ok"  class="hidden text-xs text-amber-400 mt-1">Recibido.</p>
+          <p id="abogado-err" class="hidden text-xs text-rose-400  mt-1">Error. Inténtalo de nuevo.</p>
+        </div>
+
+        <!-- Academia -->
+        <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-5 flex flex-col">
+          <div class="w-9 h-9 rounded-lg bg-slate-800/80 border border-slate-700/60 flex items-center justify-center mb-3">
+            <svg class="w-4.5 h-4.5 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/>
+            </svg>
+          </div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Academia de oposiciones</p>
+          <p class="text-xs text-slate-500 leading-relaxed mb-4 flex-1">
+            Aparece en la ficha del cuerpo que preparas. Tráfico de alta intención — candidatos que buscan información sobre esa convocatoria concreta.
+          </p>
+          <form id="academia-lead" class="flex gap-2 mt-auto" data-tipo="academia">
+            <input type="email" required placeholder="tu@email.com"
+              class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 transition" />
+            <button type="submit"
+              class="rounded-lg border border-slate-600 bg-slate-800 text-slate-300 text-xs font-semibold px-3 py-2 hover:bg-slate-700 transition-colors whitespace-nowrap">
+              Solicitar
+            </button>
+          </form>
+          <p id="academia-ok"  class="hidden text-xs text-slate-300 mt-1">Recibido.</p>
+          <p id="academia-err" class="hidden text-xs text-rose-400  mt-1">Error. Inténtalo de nuevo.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SEÑALES + NOTICIAS -->
+  <section class="border-b border-slate-800/60 bg-slate-950">
+    <div class="max-w-4xl mx-auto px-4 py-10">
+      <div class="grid sm:grid-cols-2 gap-8">
+
+        <!-- Señales recientes -->
+        <div>
+          <p class="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-4">Señales recientes</p>
+          {senales.length === 0 ? (
+            <p class="text-xs text-slate-600">Sin señales disponibles aún.</p>
+          ) : (
+            <ol class="space-y-3">
+              {senales.map(s => (
+                <li class="border-l-2 border-slate-800 pl-3">
+                  <p class="text-[10px] text-slate-600 mb-0.5">{s.fuente}{s.fecha ? ` · ${fmtDate(s.fecha)}` : ''}</p>
+                  <a href={`/hallazgos/${s.slug}`} class="text-xs font-semibold text-slate-300 hover:text-amber-400 transition-colors leading-snug block">
+                    {s.titulo}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          )}
+          <a href="/incidencias" class="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors mt-4">
+            Ver todas las señales →
+          </a>
+        </div>
+
+        <!-- Noticias BOE / sector -->
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">Últimas del BOE</p>
+          {noticias.length === 0 ? (
+            <p class="text-xs text-slate-600">Sin publicaciones recientes de bombero en el BOE.</p>
+          ) : (
+            <ol class="space-y-3">
+              {noticias.map(n => (
+                <li class="border-l-2 border-slate-800 pl-3">
+                  <p class="text-[10px] text-slate-600 mb-0.5">BOE{n.fecha ? ` · ${n.fecha.slice(0, 16)}` : ''}</p>
+                  <a href={n.link} target="_blank" rel="noopener noreferrer"
+                     class="text-xs font-semibold text-slate-300 hover:text-amber-400 transition-colors leading-snug block">
+                    {n.titulo}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          )}
+          <a href="https://www.boe.es/buscar/boe.php?campo%5B0%5D=TIT&dato%5B0%5D=bombero&bdSearch=boe"
+             target="_blank" rel="noopener noreferrer"
+             class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-300 transition-colors mt-4">
+            Buscar en el BOE →
+          </a>
+        </div>
+
+      </div>
     </div>
   </section>
 
@@ -293,11 +332,11 @@ const jsonLd = {
   const SB_KEY = import.meta.env.PUBLIC_SUPABASE_KEY as string
 
   async function submitHomeLead(form: HTMLFormElement) {
-    const email   = (form.querySelector('input[type="email"]') as HTMLInputElement).value.trim()
-    const tipo    = form.dataset.tipo ?? 'unknown'
-    const btn     = form.querySelector('button') as HTMLButtonElement
-    const okEl    = document.getElementById(`${tipo}-ok`)!
-    const errEl   = document.getElementById(`${tipo}-err`)!
+    const email  = (form.querySelector('input[type="email"]') as HTMLInputElement).value.trim()
+    const tipo   = form.dataset.tipo ?? 'unknown'
+    const btn    = form.querySelector('button') as HTMLButtonElement
+    const okEl   = document.getElementById(`${tipo}-ok`)!
+    const errEl  = document.getElementById(`${tipo}-err`)!
 
     btn.disabled    = true
     btn.textContent = 'Enviando…'
@@ -327,11 +366,11 @@ const jsonLd = {
     } catch {
       errEl.classList.remove('hidden')
       btn.disabled    = false
-      btn.textContent = tipo === 'abogado' ? 'Solicitar CSV' : 'Solicitar inclusión'
+      btn.textContent = tipo === 'abogado' ? 'Solicitar CSV' : tipo === 'academia' ? 'Solicitar' : 'Enviar'
     }
   }
 
-  ;['abogado-lead', 'academia-lead'].forEach(id => {
+  ;['opositor-lead', 'abogado-lead', 'academia-lead'].forEach(id => {
     document.getElementById(id)?.addEventListener('submit', e => {
       e.preventDefault()
       submitHomeLead(e.currentTarget as HTMLFormElement)
@@ -374,18 +413,18 @@ const jsonLd = {
     </li>`
   }
 
-  const input       = document.getElementById('search-input')   as HTMLInputElement
-  const previewArea = document.getElementById('preview-area')   as HTMLElement
-  const previewList = document.getElementById('preview-list')   as HTMLElement
-  const previewEmpty= document.getElementById('preview-empty')  as HTMLElement
-  const verTodos    = document.getElementById('ver-todos-link') as HTMLAnchorElement
-  const verTodosE   = document.getElementById('ver-todos-empty')as HTMLAnchorElement
+  const input        = document.getElementById('search-input')    as HTMLInputElement
+  const previewArea  = document.getElementById('preview-area')    as HTMLElement
+  const previewList  = document.getElementById('preview-list')    as HTMLElement
+  const previewEmpty = document.getElementById('preview-empty')   as HTMLElement
+  const verTodos     = document.getElementById('ver-todos-link')  as HTMLAnchorElement
+  const verTodosE    = document.getElementById('ver-todos-empty') as HTMLAnchorElement
 
   function buscar(raw: string) {
-    const term  = normalizar(raw.trim())
-    const incidenciasUrl = `/incidencias${raw.trim() ? `?q=${encodeURIComponent(raw.trim())}` : ''}`
-    verTodos.href  = incidenciasUrl
-    verTodosE.href = incidenciasUrl
+    const term = normalizar(raw.trim())
+    const url  = `/incidencias${raw.trim() ? `?q=${encodeURIComponent(raw.trim())}` : ''}`
+    verTodos.href  = url
+    verTodosE.href = url
 
     if (!term) {
       previewArea.classList.add('hidden')
@@ -407,16 +446,15 @@ const jsonLd = {
 
     previewEmpty.classList.add('hidden')
     previewList.innerHTML = matches.slice(0, 3).map(h => renderPreview(h, raw.trim())).join('')
-    const extra = matches.length - 3
-    verTodos.textContent = extra > 0
+    verTodos.textContent = matches.length > 3
       ? `Ver los ${matches.length} resultados en el observatorio →`
       : `Ver en el observatorio →`
     previewArea.classList.remove('hidden')
   }
 
-  input.addEventListener('input', () => buscar(input.value))
+  input.addEventListener('input',   () => buscar(input.value))
   input.addEventListener('keydown', e => { if (e.key === 'Enter') buscar(input.value) })
-  input.addEventListener('search', () => buscar(input.value))
+  input.addEventListener('search',  () => buscar(input.value))
 
   document.querySelectorAll<HTMLButtonElement>('.suggestion').forEach(btn => {
     btn.addEventListener('click', () => {
