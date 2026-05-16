@@ -107,8 +107,8 @@ function parsearRSS(xml) {
   return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => {
     const b   = m[1]
     const get = tag => {
-      const cd = b.match(new RegExp(`<${tag}><!\[CDATA\[([\\s\\S]*?)\]\]>`))?.[1]
-      return (cd ?? b.match(new RegExp(`<${tag}>([\\s\\S]*?)<\/${tag}>`))?.[1] ?? '').trim()
+      const cd = b.match(new RegExp(`<${tag}><!\\[CDATA\\[([\\s\\S]*?)\\]\\]>`))?.[1]
+      return (cd ?? b.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`))?.[1] ?? '').trim()
     }
     return {
       titulo: get('title'),
@@ -174,12 +174,12 @@ async function scrapeBOE() {
 // ── FUENTE: Boletines autonómicos ──────────────────────────────────────────
 
 const BOLETINES = [
-  { nombre: 'BOCM',  rss: 'https://www.bocm.es/rss/bocm_rss_boletin.asp',          q: 'bombero' },
-  { nombre: 'DOGC',  rss: 'https://dogc.gencat.cat/ca/pdogc_canals_interns/pdogc_resultats_fitxa/?action=fitxa&mode=single&documentId=0&language=ca_ES&newLang=ca_ES&numDocs=10&skip=0&operador=and&text=bombero&tipusDocument=&dataInici=&dataFi=&format=rss', q: '' },
-  { nombre: 'DOCV',  rss: 'https://dogv.gva.es/portal/ficha_disposicion_pc.jsp?tipo=buscador&L=1&buscar=bombero&formato=rss', q: '' },
-  { nombre: 'BOB',   rss: 'https://www.bizkaia.eus/fitxategiak/04/ondarea/Boletines/Indice/rss.asp',   q: 'bombero' },
-  { nombre: 'BON',   rss: 'https://bon.navarra.es/es/rss/',                         q: 'bombero' },
-  { nombre: 'BOJA',  rss: 'https://www.juntadeandalucia.es/eboja/rss/boja.rss',     q: 'bombero' },
+  { nombre: 'BOCM', rss: 'https://www.bocm.es/boletin/CM_Busqueda_jsp/bocm_boletin_busqueda.html?buscado=bombero&formato=rss' },
+  { nombre: 'DOGC', rss: 'https://dogc.gencat.cat/ca/pdogc_canals_interns/pdogc_resultats_fitxa/?action=fitxa&text=bombero&format=rss' },
+  { nombre: 'DOCV', rss: 'https://dogv.gva.es/portal/rss.jsp?tipo=1&texto=bombero' },
+  { nombre: 'BOB',  rss: 'https://www.bizkaia.eus/eu/bao-bob/rss?q=bombero' },
+  { nombre: 'BON',  rss: 'https://www.navarra.es/bon/rss?q=bombero' },
+  { nombre: 'BOJA', rss: 'https://www.juntadeandalucia.es/eboja/rss/bombero.rss' },
 ]
 
 async function scrapeBoletines() {
