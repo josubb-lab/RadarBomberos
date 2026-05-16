@@ -32,22 +32,18 @@ const serialized = JSON.stringify(
   }))
 )
 
-// RSS BOE — filtrado por "bombero"
-let noticias: Array<{ titulo: string; link: string; fecha: string }> = []
-try {
-  const rss = await fetch('https://www.boe.es/rss/canal.php?c=boe', {
-    signal: AbortSignal.timeout(4000),
-  })
-  const xml = await rss.text()
-  noticias = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)]
-    .map(m => ({
-      titulo: (m[1].match(/<title><!\[CDATA\[(.*?)\]\]>/)?.[1] ?? m[1].match(/<title>(.*?)<\/title>/)?.[1] ?? '').trim(),
-      link:   (m[1].match(/<guid[^>]*>(.*?)<\/guid>/)?.[1] ?? '').trim(),
-      fecha:  (m[1].match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? '').trim(),
-    }))
-    .filter(i => i.titulo && /bombero/i.test(i.titulo))
-    .slice(0, 4)
-} catch { /* RSS opcional, no bloquea */ }
+const { data: noticiasData } = await supabase
+  .from('noticias')
+  .select('titulo, url, fecha')
+  .eq('nicho', nichoId)
+  .order('fecha', { ascending: false, nullsFirst: false })
+  .limit(4)
+
+const noticias = (noticiasData ?? []).map(n => ({
+  titulo: n.titulo ?? '',
+  link:   n.url    ?? '',
+  fecha:  n.fecha  ?? '',
+}))
 
 const senales = (hallazgos ?? []).slice(0, 4).map(h => ({
   slug:   hallazgoSlug(h.titulo ?? '', h.id),
@@ -282,27 +278,22 @@ const jsonLd = {
   <section class="bg-slate-950">
     <div class="max-w-4xl mx-auto px-4 py-10">
       <div class="flex items-center justify-between mb-6">
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Últimas del BOE</p>
-        <a href="https://www.boe.es/buscar/boe.php?campo%5B0%5D=TIT&dato%5B0%5D=bombero&bdSearch=boe"
-           target="_blank" rel="noopener noreferrer"
-           class="text-xs font-semibold text-slate-500 hover:text-slate-300 transition-colors">
-          Buscar en el BOE →
-        </a>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Últimas noticias</p>
       </div>
       {noticias.length === 0 ? (
-        <p class="text-sm text-slate-600">Sin publicaciones recientes de bombero en el BOE.</p>
+        <p class="text-sm text-slate-600">Sin noticias recientes.</p>
       ) : (
         <ol class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {noticias.map(n => (
             <li class="rounded-xl border border-sky-900/50 hover:border-sky-700/50 bg-slate-900/60 p-4 transition-colors flex flex-col gap-3">
               <span class="self-start text-[10px] font-semibold px-2 py-0.5 rounded-full ring-1 text-sky-400 bg-sky-950/50 ring-sky-700/40">
-                BOE
+                Noticia
               </span>
               <a href={n.link} target="_blank" rel="noopener noreferrer"
                  class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors leading-snug flex-1">
                 {n.titulo}
               </a>
-              {n.fecha && <p class="text-[10px] text-slate-600">{n.fecha.slice(0, 16)}</p>}
+              {n.fecha && <p class="text-[10px] text-slate-600">{String(n.fecha).slice(0, 10)}</p>}
             </li>
           ))}
         </ol>

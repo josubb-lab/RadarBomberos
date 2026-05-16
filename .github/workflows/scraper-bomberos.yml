@@ -22,10 +22,11 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           PUBLIC_NICHO: bomberos
         run: node scripts/scraper.js
-      - name: Commit CSV
+      - name: Commit and push
         run: |
           git config user.name "scraper-bot"
           git config user.email "scraper@firefighter.es"
-          git add exports/csv/ || true
-          git diff --cached --quiet || git commit -m "chore: CSV $(date +%Y-%m-%d)"
-      - run: git push origin master
+          echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > last-scrape.txt
+          git add exports/csv/ last-scrape.txt
+          git commit -m "chore: scrape $(date +%Y-%m-%d)" || true
+          git push origin master
