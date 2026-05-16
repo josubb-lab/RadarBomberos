@@ -284,7 +284,8 @@ async function generarCSV() {
 
   const cols  = ['titulo', 'tipo', 'fuente', 'fecha', 'relevancia', 'url', 'descripcion']
   const filas = data.map(r => cols.map(k => `"${String(r[k] ?? '').replace(/"/g, '""')}"`).join(','))
-  const csv   = [cols.join(','), ...filas].join('\n')
+  const meta  = `# Generado: ${new Date().toISOString()}`
+  const csv   = [meta, cols.join(','), ...filas].join('\n')
 
   mkdirSync('exports/csv', { recursive: true })
   const fecha = new Date().toISOString().slice(0, 10)
