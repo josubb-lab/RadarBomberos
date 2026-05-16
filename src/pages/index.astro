@@ -92,78 +92,14 @@ const jsonLd = {
 
   <!-- HERO -->
   <section class="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800/60">
-    <div class="max-w-4xl mx-auto px-4 py-14 lg:py-20">
-      <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-5">{nicho.tagline}</p>
-      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-50 leading-tight mb-5 max-w-2xl">
+    <div class="max-w-4xl mx-auto px-4 py-10 lg:py-14">
+      <p class="text-amber-500 text-xs font-semibold uppercase tracking-widest mb-4">{nicho.tagline}</p>
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-50 leading-tight mb-4 max-w-2xl">
         Oposiciones a bombero en España
       </h1>
-      <p class="text-slate-400 text-base sm:text-lg max-w-xl leading-relaxed mb-8">
+      <p class="text-slate-400 text-base sm:text-lg max-w-xl leading-relaxed">
         Guía de convocatorias, requisitos y temario por cuerpo — y el único observatorio que documenta sentencias, impugnaciones y anulaciones desde fuentes oficiales.
       </p>
-      <div class="flex flex-wrap gap-3">
-        <a href="/oposiciones"
-           class="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold px-5 py-2.5 transition-colors">
-          Ver oposiciones por ciudad
-        </a>
-        <a href="#buscador"
-           class="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 hover:border-slate-500 text-slate-300 text-sm font-semibold px-5 py-2.5 transition-colors">
-          Buscar en el observatorio
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- BUSCADOR -->
-  <section id="buscador" class="border-b border-slate-800/60 bg-slate-950">
-    <div class="max-w-4xl mx-auto px-4 py-10">
-
-      <div class="mb-6">
-        <p class="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-2">Observatorio jurídico</p>
-        <h2 class="text-xl font-extrabold text-slate-50 mb-1">¿Tu proceso tiene señales?</h2>
-        <p class="text-sm text-slate-500 max-w-lg">
-          {total} señales documentadas — sentencias, impugnaciones, anulaciones y correcciones de fuentes oficiales.
-        </p>
-      </div>
-
-      <div class="relative max-w-xl mb-3">
-        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-        </svg>
-        <input
-          id="search-input"
-          type="search"
-          placeholder="Ej: Palma, impugnación, nulidad, Catalunya…"
-          autocomplete="off"
-          class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-11 pr-4 py-3.5
-                 text-sm text-slate-100 placeholder-slate-600
-                 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-600/60 transition"
-        />
-      </div>
-
-      <div class="flex flex-wrap gap-2 mb-5">
-        {nicho.sugerencias.map(tag => (
-          <button class="suggestion text-xs px-2.5 py-1 rounded-full border border-slate-800 text-slate-600
-                         hover:border-amber-700/60 hover:text-amber-400 transition-colors bg-transparent">
-            {tag}
-          </button>
-        ))}
-      </div>
-
-      <div id="preview-area" class="hidden space-y-3 mb-4">
-        <ol id="preview-list" class="space-y-2"></ol>
-        <a id="ver-todos-link" href="/incidencias"
-           class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors">
-          Ver todos los resultados en el observatorio
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-          </svg>
-        </a>
-      </div>
-
-      <div id="preview-empty" class="hidden text-sm text-slate-500 mb-4">
-        Sin resultados. <a id="ver-todos-empty" href="/incidencias" class="text-amber-400 hover:text-amber-300 underline">Buscar en el observatorio completo →</a>
-      </div>
-
     </div>
   </section>
 
@@ -252,59 +188,125 @@ const jsonLd = {
     </div>
   </section>
 
-  <!-- SEÑALES + NOTICIAS -->
-  <section class="border-b border-slate-800/60 bg-slate-950">
+  <!-- BUSCADOR -->
+  <section id="buscador" class="border-b border-slate-800/60 bg-slate-950">
     <div class="max-w-4xl mx-auto px-4 py-10">
-      <div class="grid sm:grid-cols-2 gap-8">
 
-        <!-- Señales recientes -->
-        <div>
-          <p class="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-4">Señales recientes</p>
-          {senales.length === 0 ? (
-            <p class="text-xs text-slate-600">Sin señales disponibles aún.</p>
-          ) : (
-            <ol class="space-y-3">
-              {senales.map(s => (
-                <li class="border-l-2 border-slate-800 pl-3">
-                  <p class="text-[10px] text-slate-600 mb-0.5">{s.fuente}{s.fecha ? ` · ${fmtDate(s.fecha)}` : ''}</p>
-                  <a href={`/hallazgos/${s.slug}`} class="text-xs font-semibold text-slate-300 hover:text-amber-400 transition-colors leading-snug block">
-                    {s.titulo}
-                  </a>
-                </li>
-              ))}
-            </ol>
-          )}
-          <a href="/incidencias" class="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors mt-4">
-            Ver todas las señales →
-          </a>
-        </div>
-
-        <!-- Noticias BOE / sector -->
-        <div>
-          <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">Últimas del BOE</p>
-          {noticias.length === 0 ? (
-            <p class="text-xs text-slate-600">Sin publicaciones recientes de bombero en el BOE.</p>
-          ) : (
-            <ol class="space-y-3">
-              {noticias.map(n => (
-                <li class="border-l-2 border-slate-800 pl-3">
-                  <p class="text-[10px] text-slate-600 mb-0.5">BOE{n.fecha ? ` · ${n.fecha.slice(0, 16)}` : ''}</p>
-                  <a href={n.link} target="_blank" rel="noopener noreferrer"
-                     class="text-xs font-semibold text-slate-300 hover:text-amber-400 transition-colors leading-snug block">
-                    {n.titulo}
-                  </a>
-                </li>
-              ))}
-            </ol>
-          )}
-          <a href="https://www.boe.es/buscar/boe.php?campo%5B0%5D=TIT&dato%5B0%5D=bombero&bdSearch=boe"
-             target="_blank" rel="noopener noreferrer"
-             class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-300 transition-colors mt-4">
-            Buscar en el BOE →
-          </a>
-        </div>
-
+      <div class="mb-6">
+        <p class="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-2">Observatorio jurídico</p>
+        <h2 class="text-xl font-extrabold text-slate-50 mb-1">¿Tu proceso tiene señales?</h2>
+        <p class="text-sm text-slate-500 max-w-lg">
+          {total} señales documentadas — sentencias, impugnaciones, anulaciones y correcciones de fuentes oficiales.
+        </p>
       </div>
+
+      <div class="relative max-w-xl mb-3">
+        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          id="search-input"
+          type="search"
+          placeholder="Ej: Palma, impugnación, nulidad, Catalunya…"
+          autocomplete="off"
+          class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-11 pr-4 py-3.5
+                 text-sm text-slate-100 placeholder-slate-600
+                 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-600/60 transition"
+        />
+      </div>
+
+      <div class="flex flex-wrap gap-2 mb-5">
+        {nicho.sugerencias.map(tag => (
+          <button class="suggestion text-xs px-2.5 py-1 rounded-full border border-slate-800 text-slate-600
+                         hover:border-amber-700/60 hover:text-amber-400 transition-colors bg-transparent">
+            {tag}
+          </button>
+        ))}
+      </div>
+
+      <div id="preview-area" class="hidden space-y-3 mb-4">
+        <ol id="preview-list" class="space-y-2"></ol>
+        <a id="ver-todos-link" href="/incidencias"
+           class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors">
+          Ver todos los resultados en el observatorio
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
+        </a>
+      </div>
+
+      <div id="preview-empty" class="hidden text-sm text-slate-500 mb-4">
+        Sin resultados. <a id="ver-todos-empty" href="/incidencias" class="text-amber-400 hover:text-amber-300 underline">Buscar en el observatorio completo →</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SEÑALES RECIENTES -->
+  <section class="bg-slate-950 border-b border-slate-800/60">
+    <div class="max-w-4xl mx-auto px-4 py-10">
+      <div class="flex items-center justify-between mb-6">
+        <p class="text-xs font-semibold text-amber-500 uppercase tracking-widest">Señales recientes</p>
+        <a href="/incidencias" class="text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors">Ver todas →</a>
+      </div>
+      {senales.length === 0 ? (
+        <p class="text-sm text-slate-600">Sin señales disponibles aún.</p>
+      ) : (
+        <ol class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {senales.map(s => {
+            const isAnulacion    = /anulac/i.test(s.tipo)
+            const isImpugnacion  = /impugn/i.test(s.tipo)
+            const isSentencia    = /sentenc/i.test(s.tipo)
+            const borderColor    = isAnulacion ? 'border-rose-700/60'   : isImpugnacion ? 'border-orange-600/60' : isSentencia ? 'border-amber-600/60' : 'border-sky-700/60'
+            const badgeColor     = isAnulacion ? 'text-rose-400 bg-rose-950/50 ring-rose-700/40' : isImpugnacion ? 'text-orange-400 bg-orange-950/50 ring-orange-700/40' : isSentencia ? 'text-amber-400 bg-amber-950/50 ring-amber-700/40' : 'text-sky-400 bg-sky-950/50 ring-sky-700/40'
+            const badgeLabel     = isAnulacion ? 'Anulación' : isImpugnacion ? 'Impugnación' : isSentencia ? 'Sentencia' : s.tipo || 'Señal'
+            const hoverBorder    = isAnulacion ? 'hover:border-rose-600/50'   : isImpugnacion ? 'hover:border-orange-500/50' : isSentencia ? 'hover:border-amber-500/50' : 'hover:border-sky-600/50'
+            return (
+              <li class={`rounded-xl border ${borderColor} ${hoverBorder} bg-slate-900/60 p-4 transition-colors flex flex-col gap-3`}>
+                <span class={`self-start text-[10px] font-semibold px-2 py-0.5 rounded-full ring-1 ${badgeColor}`}>
+                  {badgeLabel}
+                </span>
+                <a href={`/hallazgos/${s.slug}`} class="text-sm font-semibold text-slate-200 hover:text-amber-400 transition-colors leading-snug flex-1">
+                  {s.titulo}
+                </a>
+                <p class="text-[10px] text-slate-600">{s.fuente}{s.fecha ? ` · ${fmtDate(s.fecha)}` : ''}</p>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </div>
+  </section>
+
+  <!-- NOTICIAS BOE -->
+  <section class="bg-slate-950">
+    <div class="max-w-4xl mx-auto px-4 py-10">
+      <div class="flex items-center justify-between mb-6">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Últimas del BOE</p>
+        <a href="https://www.boe.es/buscar/boe.php?campo%5B0%5D=TIT&dato%5B0%5D=bombero&bdSearch=boe"
+           target="_blank" rel="noopener noreferrer"
+           class="text-xs font-semibold text-slate-500 hover:text-slate-300 transition-colors">
+          Buscar en el BOE →
+        </a>
+      </div>
+      {noticias.length === 0 ? (
+        <p class="text-sm text-slate-600">Sin publicaciones recientes de bombero en el BOE.</p>
+      ) : (
+        <ol class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {noticias.map(n => (
+            <li class="rounded-xl border border-sky-900/50 hover:border-sky-700/50 bg-slate-900/60 p-4 transition-colors flex flex-col gap-3">
+              <span class="self-start text-[10px] font-semibold px-2 py-0.5 rounded-full ring-1 text-sky-400 bg-sky-950/50 ring-sky-700/40">
+                BOE
+              </span>
+              <a href={n.link} target="_blank" rel="noopener noreferrer"
+                 class="text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors leading-snug flex-1">
+                {n.titulo}
+              </a>
+              {n.fecha && <p class="text-[10px] text-slate-600">{n.fecha.slice(0, 16)}</p>}
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   </section>
 
