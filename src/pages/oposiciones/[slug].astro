@@ -151,12 +151,16 @@ const jsonLd = {
         <p class="text-xs text-slate-600 mb-5">
           Si preparas oposiciones a bombero en {c.ciudad} y quieres aparecer aquí, escríbenos.
         </p>
-        <a
-          href={`mailto:josue@benchdatalab.com?subject=${encodeURIComponent(`Academia oposiciones bomberos — ${c.ciudad}`)}&body=${encodeURIComponent(`Hola,\n\nSomos una academia que prepara oposiciones a bombero en ${c.ciudad} y nos gustaría aparecer en la ficha de ${c.nombre}.\n\nNombre de la academia:\nWeb:\nTeléfono de contacto:\n`)}`}
-          class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
-        >
-          Solicitar inclusión →
-        </a>
+        <form id="academia-form" class="flex gap-2 justify-center" data-cuerpo={c.nombre} data-ciudad={c.ciudad}>
+          <input type="email" required placeholder="tu@email.com"
+            class="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 transition w-52" />
+          <button type="submit"
+            class="rounded-lg border border-amber-700/50 bg-amber-950/40 text-amber-400 text-xs font-semibold px-3 py-2 hover:bg-amber-950/60 transition-colors whitespace-nowrap">
+            Solicitar inclusión
+          </button>
+        </form>
+        <p id="academia-ok"  class="hidden text-xs text-amber-400 mt-3">Recibido. Te contactamos pronto.</p>
+        <p id="academia-err" class="hidden text-xs text-rose-400  mt-3">Error al enviar. Inténtalo de nuevo.</p>
       </div>
     </section>
 
@@ -303,6 +307,53 @@ const jsonLd = {
         btn.textContent = 'Enviar'
       }
     })
+
+    // Academia form
+    const academiaForm = document.getElementById('academia-form') as HTMLFormElement | null
+    if (academiaForm) {
+      const acadBtn = academiaForm.querySelector('button') as HTMLButtonElement
+      const acadOk  = document.getElementById('academia-ok')!
+      const acadErr = document.getElementById('academia-err')!
+
+      academiaForm.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        const email  = (academiaForm.querySelector('input[type="email"]') as HTMLInputElement).value.trim()
+        const cuerpo = academiaForm.dataset.cuerpo
+        const ciudad = academiaForm.dataset.ciudad
+
+        acadBtn.disabled    = true
+        acadBtn.textContent = 'Enviando…'
+        acadErr.classList.add('hidden')
+
+        try {
+          const sbRes = await fetch(`${SB_URL}/rest/v1/leads`, {
+            method:  'POST',
+            headers: {
+              'apikey':        SB_KEY,
+              'Authorization': `Bearer ${SB_KEY}`,
+              'Content-Type':  'application/json',
+              'Prefer':        'return=minimal',
+            },
+            body: JSON.stringify({ email, tipo: 'academia', cuerpo, ciudad, fuente: window.location.pathname }),
+          })
+
+          await fetch('https://formsubmit.co/ajax/josue@benchdatalab.com', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ email, tipo: 'academia', cuerpo, ciudad, _subject: `Academia — ${ciudad}` }),
+          }).catch(() => {})
+
+          if (!sbRes.ok) throw new Error()
+
+          academiaForm.style.display = 'none'
+          acadOk.classList.remove('hidden')
+        } catch {
+          acadErr.classList.remove('hidden')
+          acadBtn.disabled    = false
+          acadBtn.textContent = 'Solicitar inclusión'
+        }
+      })
+    }
   </script>
 
   <!-- FOOTER -->

@@ -152,13 +152,16 @@ const jsonLd = {
                 </p>
               </div>
             </div>
-            <a
-              href={`mailto:josue@benchdatalab.com?subject=${encodeURIComponent('Acceso informe profesional — Radar Bomberos')}`}
-              class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors"
-            >
-              Solicitar acceso al CSV semanal
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-            </a>
+            <form id="abogado-lead" class="flex gap-2" data-tipo="abogado">
+              <input type="email" required placeholder="tu@email.com"
+                class="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 transition" />
+              <button type="submit"
+                class="rounded-lg border border-amber-700/50 bg-amber-950/40 text-amber-400 text-xs font-semibold px-3 py-2 hover:bg-amber-950/60 transition-colors whitespace-nowrap">
+                Solicitar CSV
+              </button>
+            </form>
+            <p id="abogado-ok"  class="hidden text-xs text-amber-400 mt-1">Recibido. Te contactamos pronto.</p>
+            <p id="abogado-err" class="hidden text-xs text-rose-400  mt-1">Error al enviar. Inténtalo de nuevo.</p>
           </div>
         </div>
       </div>
@@ -187,13 +190,16 @@ const jsonLd = {
                 </p>
               </div>
             </div>
-            <a
-              href={`mailto:josue@benchdatalab.com?subject=${encodeURIComponent('Academia — quiero aparecer en Firefighter.es')}`}
-              class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-slate-100 transition-colors"
-            >
-              Solicitar inclusión en la guía
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-            </a>
+            <form id="academia-lead" class="flex gap-2" data-tipo="academia">
+              <input type="email" required placeholder="tu@email.com"
+                class="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500/30 transition" />
+              <button type="submit"
+                class="rounded-lg border border-slate-600 bg-slate-800 text-slate-300 text-xs font-semibold px-3 py-2 hover:bg-slate-700 transition-colors whitespace-nowrap">
+                Solicitar inclusión
+              </button>
+            </form>
+            <p id="academia-ok"  class="hidden text-xs text-slate-300 mt-1">Recibido. Te contactamos pronto.</p>
+            <p id="academia-err" class="hidden text-xs text-rose-400  mt-1">Error al enviar. Inténtalo de nuevo.</p>
           </div>
         </div>
       </div>
@@ -281,6 +287,57 @@ const jsonLd = {
   <script type="application/json" id="hallazgos-data" set:html={serialized}></script>
 
 </Layout>
+
+<script>
+  const SB_URL = import.meta.env.PUBLIC_SUPABASE_URL as string
+  const SB_KEY = import.meta.env.PUBLIC_SUPABASE_KEY as string
+
+  async function submitHomeLead(form: HTMLFormElement) {
+    const email   = (form.querySelector('input[type="email"]') as HTMLInputElement).value.trim()
+    const tipo    = form.dataset.tipo ?? 'unknown'
+    const btn     = form.querySelector('button') as HTMLButtonElement
+    const okEl    = document.getElementById(`${tipo}-ok`)!
+    const errEl   = document.getElementById(`${tipo}-err`)!
+
+    btn.disabled    = true
+    btn.textContent = 'Enviando…'
+
+    try {
+      const sbRes = await fetch(`${SB_URL}/rest/v1/leads`, {
+        method:  'POST',
+        headers: {
+          'apikey':        SB_KEY,
+          'Authorization': `Bearer ${SB_KEY}`,
+          'Content-Type':  'application/json',
+          'Prefer':        'return=minimal',
+        },
+        body: JSON.stringify({ email, tipo, fuente: window.location.pathname }),
+      })
+
+      await fetch('https://formsubmit.co/ajax/josue@benchdatalab.com', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ email, tipo, _subject: `Lead ${tipo} — firefighter.es` }),
+      }).catch(() => {})
+
+      if (!sbRes.ok) throw new Error()
+
+      form.style.display = 'none'
+      okEl.classList.remove('hidden')
+    } catch {
+      errEl.classList.remove('hidden')
+      btn.disabled    = false
+      btn.textContent = tipo === 'abogado' ? 'Solicitar CSV' : 'Solicitar inclusión'
+    }
+  }
+
+  ;['abogado-lead', 'academia-lead'].forEach(id => {
+    document.getElementById(id)?.addEventListener('submit', e => {
+      e.preventDefault()
+      submitHomeLead(e.currentTarget as HTMLFormElement)
+    })
+  })
+</script>
 
 <script>
   const HALLAZGOS: Array<{
