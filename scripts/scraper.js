@@ -45,7 +45,7 @@ const TIPO_MAP = {
   correccion:  ['corrección de errores', 'fe de erratas'],
 }
 
-const KW_BOMBERO  = ['bombero', 'bomberos', 'extinción de incendios']
+const KW_BOMBERO  = ['bombero', 'bomberos', 'extinción de incendios', 'suhiltzaile', 'suhiltzaileak']
 const KW_JURIDICO = Object.values(TIPO_MAP).flat()
 
 function detectarTipo(texto) {
@@ -176,30 +176,36 @@ async function scrapeBOE() {
 // ── FUENTE: Boletines autonómicos ──────────────────────────────────────────
 
 const BOLETINES = [
-  { nombre: 'BOCM', rss: 'https://www.bocm.es/boletin/CM_Busqueda_jsp/bocm_boletin_busqueda.html?buscado=bombero&formato=rss' },
-  { nombre: 'DOGC', rss: 'https://dogc.gencat.cat/ca/pdogc_canals_interns/pdogc_resultats_fitxa/?action=fitxa&text=bombero&format=rss' },
-  { nombre: 'DOCV', rss: 'https://dogv.gva.es/portal/rss.jsp?tipo=1&texto=bombero' },
-  { nombre: 'BOB',  rss: 'https://www.bizkaia.eus/eu/bao-bob/rss?q=bombero' },
-  { nombre: 'BON',  rss: 'https://www.navarra.es/bon/rss?q=bombero' },
-  { nombre: 'BOJA', rss: 'https://www.juntadeandalucia.es/eboja/rss/bombero.rss' },
+  { nombre: 'DOGC', rss: 'https://dogc.gencat.cat/ca/pdogc_canals_interns/pdogc_resultats_fitxa/?action=fitxa&text=bombero&format=rss', atom: false },
+  { nombre: 'BOB',  rss: 'http://www.bizkaia.eus/lehendakaritza/Bao_bob/RSS/BT00_RSS_EU.XML',                                          atom: false },
+  { nombre: 'BOJA', rss: 'https://www.juntadeandalucia.es/boja/distribucion/s51.xml',                                                   atom: true  },
 ]
+
+function parsearAtom(xml) {
+  return [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map(m => {
+    const b    = m[1]
+    const get  = tag => b.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`))?.[1]?.trim() ?? ''
+    const href = b.match(/<link[^>]+href="([^"]+)"/)?.[1] ?? ''
+    return { titulo: get('title'), link: href, desc: get('content') || get('summary') || '', fecha: get('updated') }
+  })
+}
 
 async function scrapeBoletines() {
   console.log('\n📋 Boletines autonómicos')
 
   for (const bol of BOLETINES) {
     try {
-      const res = await fetch(bol.rss, { signal: AbortSignal.timeout(8000) })
+      const res = await fetch(bol.rss, { signal: AbortSignal.timeout(10000) })
       if (!res.ok) { console.warn(`  ⚠️  ${bol.nombre}: HTTP ${res.status}`); continue }
-      const xml  = await res.text()
-      const items = parsearRSS(xml)
+      const xml   = await res.text()
+      const items = bol.atom ? parsearAtom(xml) : parsearRSS(xml)
       let cnt = 0
 
       for (const item of items) {
         const texto = `${item.titulo} ${item.desc}`
         if (!esBombero(texto)) continue
         const rel = relevancia(item.titulo, item.desc)
-        if (rel < 2) continue // solo señales jurídicas en boletines
+        if (rel < 2) continue
 
         await insertar({
           titulo:      item.titulo,
