@@ -4,18 +4,22 @@ import '../styles/global.css'
 interface Props {
   title?: string
   description?: string
-  jsonLd?: object
+  jsonLd?: object | object[]
   canonical?: string
   noindex?: boolean
+  ogImage?: string
 }
 
 const {
-  title = 'Radar Bomberos',
-  description = 'Transparencia y justicia para el opositor de bomberos en España.',
+  title = 'Radar Bomberos · Observatorio jurídico de oposiciones a bombero',
+  description = 'Monitorizamos sentencias, impugnaciones, anulaciones y anomalías en oposiciones a bombero en España.',
   jsonLd,
   canonical,
   noindex = false,
+  ogImage = 'https://firefighter.es/og-image.png',
 } = Astro.props
+
+const canonicalUrl = canonical ?? 'https://firefighter.es/'
 ---
 
 <!doctype html>
@@ -24,10 +28,31 @@ const {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="description" content={description} />
+
+    <!-- SEO base -->
     <title>{title}</title>
-    {canonical && <link rel="canonical" href={canonical} />}
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <!-- Open Graph -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:site_name"   content="Radar Bomberos" />
+    <meta property="og:url"         content={canonicalUrl} />
+    <meta property="og:title"       content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image"       content={ogImage} />
+    <meta property="og:image:width"  content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale"      content="es_ES" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image"       content={ogImage} />
+
+    <!-- JSON-LD -->
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>
   <body class="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-amber-500/30">

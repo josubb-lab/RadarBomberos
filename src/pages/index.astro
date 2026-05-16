@@ -65,15 +65,29 @@ function fmtDate(d: string | null) {
   return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type':    'WebSite',
-  name:        nicho.nombre,
-  url:         nicho.siteUrl,
-  description: nicho.seoDesc,
-  inLanguage:  'es',
-  publisher:   { '@type': 'Organization', name: nicho.nombre, url: nicho.siteUrl },
-}
+const jsonLd = [
+  {
+    '@context':   'https://schema.org',
+    '@type':      'WebSite',
+    name:          nicho.nombre,
+    url:           nicho.siteUrl,
+    description:   nicho.seoDesc,
+    inLanguage:    'es',
+    potentialAction: {
+      '@type':     'SearchAction',
+      target:      `${nicho.siteUrl}/#buscador`,
+      'query-input': 'required name=search_term_string',
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type':    'Organization',
+    name:        nicho.nombre,
+    url:         nicho.siteUrl,
+    logo:        `${nicho.siteUrl}/favicon.svg`,
+    description: nicho.seoDesc,
+  },
+]
 ---
 
 <Layout title={nicho.seoTitle} description={nicho.seoDesc} {jsonLd} canonical={nicho.siteUrl + '/'}>

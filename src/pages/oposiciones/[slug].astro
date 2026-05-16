@@ -15,21 +15,32 @@ const { cuerpo: c } = Astro.props
 const pageTitle = `${c.nombre} — Requisitos, Temario, Academias y Convocatorias`
 const pageDesc  = `${c.descripcion} Requisitos de acceso, fases del proceso selectivo, temario y academias de oposiciones a bombero en ${c.ciudad}.`
 
-const jsonLd = {
-  '@context':   'https://schema.org',
-  '@type':      'WebPage',
-  name:          pageTitle,
-  description:   pageDesc,
-  url:           `${nicho.siteUrl}/oposiciones/${c.slug}`,
-  inLanguage:    'es',
-  isPartOf:      { '@type': 'WebSite', url: nicho.siteUrl },
-  about: {
-    '@type':    'GovernmentService',
-    name:       c.nombre,
-    provider:   { '@type': 'GovernmentOrganization', name: c.organismo },
-    areaServed: c.ciudad,
+const jsonLd = [
+  {
+    '@context':   'https://schema.org',
+    '@type':      'WebPage',
+    name:          pageTitle,
+    description:   pageDesc,
+    url:           `${nicho.siteUrl}/oposiciones/${c.slug}`,
+    inLanguage:    'es',
+    isPartOf:      { '@type': 'WebSite', url: nicho.siteUrl },
+    about: {
+      '@type':    'GovernmentService',
+      name:       c.nombre,
+      provider:   { '@type': 'GovernmentOrganization', name: c.organismo },
+      areaServed: c.ciudad,
+    },
   },
-}
+  {
+    '@context': 'https://schema.org',
+    '@type':    'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Inicio',      item: nicho.siteUrl },
+      { '@type': 'ListItem', position: 2, name: 'Oposiciones', item: `${nicho.siteUrl}/oposiciones` },
+      { '@type': 'ListItem', position: 3, name: c.nombre,      item: `${nicho.siteUrl}/oposiciones/${c.slug}` },
+    ],
+  },
+]
 ---
 
 <Layout title={pageTitle} description={pageDesc} {jsonLd} canonical={`${nicho.siteUrl}/oposiciones/${c.slug}`}>

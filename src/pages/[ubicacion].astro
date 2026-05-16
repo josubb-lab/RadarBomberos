@@ -42,18 +42,28 @@ function sourceMeta(fuente: string) {
 
 const recientes = (hallazgos ?? []).slice(0, 30)
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'WebPage',
-  name: pageTitle,
-  description: pageDesc,
-  url: `${nicho.siteUrl}/${ubicacion}`,
-  inLanguage: 'es',
-  isPartOf: { '@type': 'WebSite', url: nicho.siteUrl },
-}
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: pageTitle,
+    description: pageDesc,
+    url: `${nicho.siteUrl}/${ubicacion}`,
+    inLanguage: 'es',
+    isPartOf: { '@type': 'WebSite', url: nicho.siteUrl },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Inicio',       item: nicho.siteUrl },
+      { '@type': 'ListItem', position: 2, name: nombreUbicacion, item: `${nicho.siteUrl}/${ubicacion}` },
+    ],
+  },
+]
 ---
 
-<Layout title={pageTitle} description={pageDesc} {jsonLd} noindex={true}>
+<Layout title={pageTitle} description={pageDesc} {jsonLd} canonical={`${nicho.siteUrl}/${ubicacion}`}>
 
   <!-- NAV -->
   <nav class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
