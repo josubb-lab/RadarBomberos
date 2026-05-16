@@ -143,7 +143,7 @@ async function scrapeBOE() {
     d.setDate(d.getDate() - i)
     const id = d.toISOString().slice(0, 10).replace(/-/g, '')
     try {
-      const res = await fetch(`https://boe.es/api/sumario.php?id=${id}`, {
+      const res = await fetch(`https://www.boe.es/datosabiertos/api/boe/sumario/${id}`, {
         signal: AbortSignal.timeout(8000),
         headers: { Accept: 'application/json' },
       })
@@ -154,7 +154,9 @@ async function scrapeBOE() {
       for (const item of items) {
         const titulo = item.titulo ?? ''
         if (!esBombero(titulo)) continue
-        const url = item.urlHtml ? `https://boe.es${item.urlHtml}` : ''
+        const url = item.identificador
+          ? `https://www.boe.es/diario_boe/txt.php?id=${item.identificador}`
+          : ''
         await insertar({
           titulo,
           descripcion: titulo,
